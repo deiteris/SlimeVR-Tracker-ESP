@@ -71,7 +71,7 @@ uint8_t MPU9250_Base::getAddr() {
  */
 bool MPU9250_Base::testConnection() {
     uint8_t deviceId = getDeviceID();
-    return deviceId == 0x71 || deviceId == 0x73; // MPU9250 or MPU9255
+    return deviceId == 0x68 || deviceId == 0x70 || deviceId == 0x71 || deviceId == 0x73; // Allow any MPUs
 }
 
 // AUX_VDDIO register (InvenSense demo code calls this RA_*G_OFFS_TC)
