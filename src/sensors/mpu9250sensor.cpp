@@ -49,6 +49,13 @@ void MPU9250Sensor::motionSetup() {
 
     m_Logger.info("Connected to MPU9250 (reported device ID 0x%02x) at address 0x%02x", imu.getDeviceID(), addr);
 
+    uint8_t magId = imu.getMagnetometerDeviceID();
+    if (magId != 0xFF) {
+        m_Logger.fatal("Can't connect to QMC5883L (reported ID 0x%02x) at address 0x%02x", magId, 0x0D);
+    }
+
+    m_Logger.info("Connected to QMC5883L (reported ID 0x%02x) at address 0x%02x", magId, 0x0D);
+
     int16_t ax,ay,az;
 
     // turn on while flip back to calibrate. then, flip again after 5 seconds.
