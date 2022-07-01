@@ -52,9 +52,9 @@ void MPU9250Sensor::motionSetup() {
     uint8_t magId = imu.getMagnetometerDeviceID();
     if (magId != 0xFF) {
         m_Logger.fatal("Can't connect to QMC5883L (reported ID 0x%02x) at address 0x%02x", magId, 0x0D);
+    } else {
+        m_Logger.info("Connected to QMC5883L (reported ID 0x%02x) at address 0x%02x", magId, 0x0D);
     }
-
-    m_Logger.info("Connected to QMC5883L (reported ID 0x%02x) at address 0x%02x", magId, 0x0D);
 
     int16_t ax,ay,az;
 
