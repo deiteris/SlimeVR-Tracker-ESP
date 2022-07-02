@@ -64,6 +64,14 @@ THE SOFTWARE.
 
 #define BMI160_CMD_MAG_MODE_NORMAL  0x19
 
+#define BMI160_EN_PULL_UP_REG_1     0x37
+#define BMI160_EN_PULL_UP_REG_2     0x9A
+#define BMI160_EN_PULL_UP_REG_3     0xC0
+#define BMI160_EN_PULL_UP_REG_4     0x90
+#define BMI160_EN_PULL_UP_REG_5     0x80
+
+#define BMI160_7F                   0x7F
+
 #define BMI160_ACC_PMU_STATUS_BIT   4
 #define BMI160_ACC_PMU_STATUS_LEN   2
 #define BMI160_GYR_PMU_STATUS_BIT   2
