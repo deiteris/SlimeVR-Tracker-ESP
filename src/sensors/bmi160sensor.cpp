@@ -125,9 +125,13 @@ void BMI160Sensor::motionLoop() {
 
     float Gxyz[3] = {0};
     float Axyz[3] = {0};
-    getScaledValues(Gxyz, Axyz);
-
+    float Mxyz[3] = {0};
+    getScaledValues(Gxyz, Axyz, Mxyz);
+    #if USE_6_AXIS
     mahonyQuaternionUpdate(q, Axyz[0], Axyz[1], Axyz[2], Gxyz[0], Gxyz[1], Gxyz[2], deltat * 1.0e-6f);
+    #else
+    mahonyQuaternionUpdate(q, Axyz[0], Axyz[1], Axyz[2], Gxyz[0], Gxyz[1], Gxyz[2], Mxyz[0], Mxyz[1], Mxyz[2], deltat * 1.0e-6f);
+    #endif
     quaternion.set(-q[2], q[1], q[3], q[0]);
     quaternion *= sensorOffset;
 
@@ -153,7 +157,7 @@ float BMI160Sensor::getTemperature()
     return (imu.getTemperature() * TEMP_STEP) + TEMP_ZERO;
 }
 
-void BMI160Sensor::getScaledValues(float Gxyz[3], float Axyz[3])
+void BMI160Sensor::getScaledValues(float Gxyz[3], float Axyz[3], float Mxyz[3])
 {
 #if ENABLE_INSPECTION
     {
@@ -172,7 +176,12 @@ void BMI160Sensor::getScaledValues(float Gxyz[3], float Axyz[3])
     int16_t ax, ay, az;
     int16_t gx, gy, gz;
     // TODO: Read from FIFO?
+    #if USE_6_AXIS
     imu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+    #else
+    int16_t mx, my, mz;
+    imu.getMotion9(&ax, &ay, &az, &gx, &gy, &gz, &mx, &my, &mz);
+    #endif
 
     // TODO: Sensitivity over temp compensation?
     // TODO: Cross-axis sensitivity compensation?
@@ -194,6 +203,23 @@ void BMI160Sensor::getScaledValues(float Gxyz[3], float Axyz[3])
     #else
         for (uint8_t i = 0; i < 3; i++)
             Axyz[i] = (Axyz[i] - calibration->A_B[i]);
+    #endif
+
+    #if !USE_6_AXIS
+    Mxyz[0] = (float)mx;
+    Mxyz[1] = (float)my;
+    Mxyz[2] = (float)mz;
+    //apply offsets and scale factors from Magneto
+    #if useFullCalibrationMatrix == true
+        for (uint8_t i = 0; i < 3; i++)
+            temp[i] = (Mxyz[i] - m_Calibration.M_B[i]);
+        Mxyz[0] = m_Calibration.M_Ainv[0][0] * temp[0] + m_Calibration.M_Ainv[0][1] * temp[1] + m_Calibration.M_Ainv[0][2] * temp[2];
+        Mxyz[1] = m_Calibration.M_Ainv[1][0] * temp[0] + m_Calibration.M_Ainv[1][1] * temp[1] + m_Calibration.M_Ainv[1][2] * temp[2];
+        Mxyz[2] = m_Calibration.M_Ainv[2][0] * temp[0] + m_Calibration.M_Ainv[2][1] * temp[1] + m_Calibration.M_Ainv[2][2] * temp[2];
+    #else
+        for (i = 0; i < 3; i++)
+            Mxyz[i] = (Mxyz[i] - m_Calibration.M_B[i]);
+    #endif
     #endif
 }
 
@@ -235,16 +261,17 @@ void BMI160Sensor::startCalibration(int calibrationType) {
 #endif
 
     // Blink calibrating led before user should rotate the sensor
-    m_Logger.info("After 3 seconds, Gently rotate the device while it's gathering accelerometer data");
+    m_Logger.info("After 3 seconds, Gently rotate the device while it's gathering data");
     ledManager.on();
     delay(1500);
     ledManager.off();
     delay(1500);
-    m_Logger.debug("Gathering accelerometer data...");
+    m_Logger.debug("Gathering data...");
 
-    uint16_t accelCalibrationSamples = 300;
-    float *calibrationDataAcc = (float*)malloc(accelCalibrationSamples * 3 * sizeof(float));
-    for (int i = 0; i < accelCalibrationSamples; i++)
+    uint16_t secondaryCalibrationSamples = 300;
+    #if USE_6_AXIS
+    float *calibrationDataAcc = (float*)malloc(secondaryCalibrationSamples * 3 * sizeof(float));
+    for (int i = 0; i < secondaryCalibrationSamples; i++)
     {
         ledManager.on();
 
@@ -261,7 +288,7 @@ void BMI160Sensor::startCalibration(int calibrationType) {
     m_Logger.debug("Calculating calibration data...");
 
     float A_BAinv[4][3];
-    CalculateCalibration(calibrationDataAcc, accelCalibrationSamples, A_BAinv);
+    CalculateCalibration(calibrationDataAcc, secondaryCalibrationSamples, A_BAinv);
     free(calibrationDataAcc);
     m_Logger.debug("Finished Calculate Calibration data");
     m_Logger.debug("Accelerometer calibration matrix:");
@@ -275,6 +302,60 @@ void BMI160Sensor::startCalibration(int calibrationType) {
         m_Logger.debug("  %f, %f, %f, %f", A_BAinv[0][i], A_BAinv[1][i], A_BAinv[2][i], A_BAinv[3][i]);
     }
     m_Logger.debug("}");
+    #else
+    float *calibrationDataAcc = (float*)malloc(secondaryCalibrationSamples * 3 * sizeof(float));
+    float *calibrationDataMag = (float*)malloc(secondaryCalibrationSamples * 3 * sizeof(float));
+    for (int i = 0; i < secondaryCalibrationSamples; i++)
+    {
+        ledManager.on();
+
+        int16_t ax, ay, az;
+        imu.getAcceleration(&ax, &ay, &az);
+        calibrationDataAcc[i * 3 + 0] = ax;
+        calibrationDataAcc[i * 3 + 1] = ay;
+        calibrationDataAcc[i * 3 + 2] = az;
+
+        int16_t mx, my, mz;
+        imu.getMagnetometer(&mx, &my, &mz);
+        calibrationDataAcc[i * 3 + 0] = mx;
+        calibrationDataAcc[i * 3 + 1] = my;
+        calibrationDataAcc[i * 3 + 2] = mz;
+
+        ledManager.off();
+        delay(100);
+    }
+    ledManager.off();
+    m_Logger.debug("Calculating calibration data...");
+
+    float A_BAinv[4][3];
+    float M_BAinv[4][3];
+    CalculateCalibration(calibrationDataAcc, secondaryCalibrationSamples, A_BAinv);
+    free(calibrationDataAcc);
+    CalculateCalibration(calibrationDataMag, secondaryCalibrationSamples, M_BAinv);
+    free(calibrationDataMag);
+    m_Logger.debug("Finished Calculate Calibration data");
+    m_Logger.debug("Accelerometer calibration matrix:");
+    m_Logger.debug("{");
+    for (int i = 0; i < 3; i++)
+    {
+        m_Calibration.A_B[i] = A_BAinv[0][i];
+        m_Calibration.A_Ainv[0][i] = A_BAinv[1][i];
+        m_Calibration.A_Ainv[1][i] = A_BAinv[2][i];
+        m_Calibration.A_Ainv[2][i] = A_BAinv[3][i];
+        m_Logger.debug("  %f, %f, %f, %f", A_BAinv[0][i], A_BAinv[1][i], A_BAinv[2][i], A_BAinv[3][i]);
+    }
+    m_Logger.debug("}");
+    m_Logger.debug("[INFO] Magnetometer calibration matrix:");
+    m_Logger.debug("{");
+    for (int i = 0; i < 3; i++) {
+        m_Calibration.M_B[i] = M_BAinv[0][i];
+        m_Calibration.M_Ainv[0][i] = M_BAinv[1][i];
+        m_Calibration.M_Ainv[1][i] = M_BAinv[2][i];
+        m_Calibration.M_Ainv[2][i] = M_BAinv[3][i];
+        m_Logger.debug("  %f, %f, %f, %f", M_BAinv[0][i], M_BAinv[1][i], M_BAinv[2][i], M_BAinv[3][i]);
+    }
+    m_Logger.debug("}");
+    #endif
 
     m_Logger.debug("Saving the calibration data");
 

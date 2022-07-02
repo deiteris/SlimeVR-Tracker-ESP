@@ -40,6 +40,30 @@ THE SOFTWARE.
 
 #define BMI160_RA_CHIP_ID           0x00
 
+#define BMI160_MAG_PMU_STATUS_BIT   0
+#define BMI160_MAG_PMU_STATUS_LEN   2
+
+#define BMI160_STATUS_DRDY_MAG      5
+#define BMI160_STATUS_MAG_MAN_OP    2
+#define BMI160_MAG_RATE_SEL_BIT     0
+#define BMI160_MAG_RATE_SEL_LEN     4
+#define BMI160_FIFO_MAG_EN_BIT      5
+
+#define BMI160_MAG_CONF             0x44
+#define BMI160_MAG_IF_0             0x4B
+#define BMI160_MAG_IF_1             0x4C
+#define BMI160_MAG_IF_2             0x4D
+#define BMI160_MAG_IF_3             0x4E
+#define BMI160_MAG_IF_4             0x4F
+#define BMI160_IF_CONF              0x6B
+
+#define BMI160_MAG_MAN_EN           0x83
+#define BMI160_MAG_MAN_DIS          0x03
+
+#define BMI160_MAG_CONF_200Hz       0x09
+
+#define BMI160_CMD_MAG_MODE_NORMAL  0x19
+
 #define BMI160_ACC_PMU_STATUS_BIT   4
 #define BMI160_ACC_PMU_STATUS_LEN   2
 #define BMI160_GYR_PMU_STATUS_BIT   2
@@ -47,6 +71,12 @@ THE SOFTWARE.
 
 #define BMI160_RA_PMU_STATUS        0x03
 
+#define BMI160_RA_MAG_X_L           0x04
+#define BMI160_RA_MAG_X_H           0x05
+#define BMI160_RA_MAG_Y_L           0x06
+#define BMI160_RA_MAG_Y_H           0x07
+#define BMI160_RA_MAG_Z_L           0x08
+#define BMI160_RA_MAG_Z_H           0x09
 #define BMI160_RA_GYRO_X_L          0x0C
 #define BMI160_RA_GYRO_X_H          0x0D
 #define BMI160_RA_GYRO_Y_L          0x0E
@@ -594,10 +624,13 @@ class BMI160 {
         bool getIntDataReadyStatus();
 
         void getMotion6(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, int16_t* gy, int16_t* gz);
+        void getMotion9(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, int16_t* gy, int16_t* gz, int16_t* mx, int16_t* my, int16_t* mz);
         void getAcceleration(int16_t* x, int16_t* y, int16_t* z);
         int16_t getAccelerationX();
         int16_t getAccelerationY();
         int16_t getAccelerationZ();
+
+        void getMagnetometer(int16_t* mx, int16_t* my, int16_t* mz);
 
         int16_t getTemperature();
 
