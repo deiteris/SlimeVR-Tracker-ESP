@@ -105,6 +105,12 @@ void BMI160::initialize(uint8_t addr)
     setRegister(BMI160_RA_CMD, BMI160_CMD_MAG_MODE_NORMAL);
     delay(60); 
 
+    setRegister(BMI160_RA_CMD, BMI160_EN_PULL_UP_REG_1);
+    setRegister(BMI160_RA_CMD, BMI160_EN_PULL_UP_REG_2);
+    setRegister(BMI160_RA_CMD, BMI160_EN_PULL_UP_REG_3);
+    setRegister(BMI160_7F, BMI160_EN_PULL_UP_REG_4);
+    setRegister(BMI160_7F, BMI160_EN_PULL_UP_REG_5);
+
     /* Set MAG I2C address */
     setRegister(BMI160_MAG_IF_0, 0x0D >> 1); // 0 bit of address is reserved and needs to be shited
     
