@@ -317,9 +317,9 @@ void BMI160Sensor::startCalibration(int calibrationType) {
 
         int16_t mx, my, mz;
         imu.getMagnetometer(&mx, &my, &mz);
-        calibrationDataAcc[i * 3 + 0] = mx;
-        calibrationDataAcc[i * 3 + 1] = my;
-        calibrationDataAcc[i * 3 + 2] = mz;
+        calibrationDataMag[i * 3 + 0] = mx;
+        calibrationDataMag[i * 3 + 1] = my;
+        calibrationDataMag[i * 3 + 2] = mz;
 
         ledManager.off();
         delay(100);
