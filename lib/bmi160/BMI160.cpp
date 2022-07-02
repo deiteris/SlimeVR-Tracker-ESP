@@ -100,6 +100,39 @@ void BMI160::initialize(uint8_t addr)
     setAccelDLPFMode(BMI160_DLPF_MODE_OSR4);
     delay(1);
 
+    /* Configure MAG interface and setup mode */
+    /* Set MAG interface normal power mode */
+    setRegister(BMI160_RA_CMD, BMI160_CMD_MAG_MODE_NORMAL);
+    delay(60); 
+
+    /* Set MAG I2C address */
+    setRegister(BMI160_MAG_IF_0, 0x0D >> 1); // 0 bit of address is reserved and needs to be shited
+    
+    /* Enable MAG setup mode, set read out offset to MAX and burst length to 8 */
+    setRegister(BMI160_MAG_IF_1, BMI160_MAG_MAN_EN);
+    
+    /* Enable MAG interface */
+    setRegister(BMI160_IF_CONF, 0x32);
+
+    /* Configure QMC5883L Sensor */
+    /* Wake QMC5883L up */
+    setRegister(BMI160_MAG_IF_4, 0x01);
+    setRegister(BMI160_MAG_IF_3, 0x0B);
+    delay(3);
+
+    /* Enable continuous measurement mode 200Hz */
+    setRegister(BMI160_MAG_IF_4, 0x1D);
+    setRegister(BMI160_MAG_IF_3, 0x09);
+
+    /* Configure MAG interface for Data mode */
+    /* Configure MAG read data address */
+    setRegister(BMI160_MAG_IF_2, 0x00);
+    /* Configure MAG interface data rate (200Hz) */
+    setRegister(BMI160_MAG_CONF, BMI160_MAG_CONF_200Hz);
+
+    /* Enable MAG read mode */
+    setRegister(BMI160_MAG_IF_1, BMI160_MAG_MAN_DIS);
+
     /* Only PIN1 interrupts currently supported - map all interrupts to PIN1 */
     I2CdevMod::writeByte(devAddr, BMI160_RA_INT_MAP_0, 0xFF);
     I2CdevMod::writeByte(devAddr, BMI160_RA_INT_MAP_1, 0xF0);
@@ -2126,6 +2159,17 @@ void BMI160::getMotion6(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, int1
     *az = (((int16_t)buffer[11]) << 8) | buffer[10];
 }
 
+void BMI160::getMotion9(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, int16_t* gy, int16_t* gz, int16_t* mx, int16_t* my, int16_t* mz) {
+    I2CdevMod::readBytes(devAddr, BMI160_RA_GYRO_X_L, 12, buffer);
+    *gx = (((int16_t)buffer[1])  << 8) | buffer[0];
+    *gy = (((int16_t)buffer[3])  << 8) | buffer[2];
+    *gz = (((int16_t)buffer[5])  << 8) | buffer[4];
+    *ax = (((int16_t)buffer[7])  << 8) | buffer[6];
+    *ay = (((int16_t)buffer[9])  << 8) | buffer[8];
+    *az = (((int16_t)buffer[11]) << 8) | buffer[10];
+    getMagnetometer(mx, my, mz);
+}
+
 /** Get 3-axis accelerometer readings.
  * These registers store the most recent accelerometer measurements.
  * Accelerometer measurements are written to these registers at the Output Data Rate
@@ -2289,6 +2333,18 @@ int16_t BMI160::getRotationY() {
 int16_t BMI160::getRotationZ() {
     I2CdevMod::readBytes(devAddr, BMI160_RA_GYRO_Z_L, 2, buffer);
     return (((int16_t)buffer[1]) << 8) | buffer[0];
+}
+
+/** Get magnetometer readings
+ * @return Z-axis rotation measurement in 16-bit 2's complement format
+ * @see getMotion6()
+ * @see BMI160_RA_GYRO_Z_L
+ */
+void BMI160::getMagnetometer(int16_t* mx, int16_t* my, int16_t* mz) {
+    I2CdevMod::readBytes(devAddr, BMI160_RA_MAG_X_L, 6, buffer);
+    *mx = (((int16_t)buffer[1])  << 8) | buffer[0];
+    *my = (((int16_t)buffer[3])  << 8) | buffer[2];
+    *mz = (((int16_t)buffer[5])  << 8) | buffer[4];
 }
 
 /** Read a BMI160 register directly.
