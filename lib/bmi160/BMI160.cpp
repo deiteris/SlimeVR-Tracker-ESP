@@ -112,7 +112,7 @@ void BMI160::initialize(uint8_t addr)
     setRegister(BMI160_7F, BMI160_EN_PULL_UP_REG_5);
 
     /* Set MAG I2C address */
-    setRegister(BMI160_MAG_IF_0, 0x0D >> 1); // 0 bit of address is reserved and needs to be shited
+    setRegister(BMI160_MAG_IF_0, 0x1E >> 1); // 0 bit of address is reserved and needs to be shited
     
     /* Enable MAG setup mode, set read out offset to MAX and burst length to 8 */
     setRegister(BMI160_MAG_IF_1, BMI160_MAG_MAN_EN);
@@ -120,21 +120,30 @@ void BMI160::initialize(uint8_t addr)
     /* Enable MAG interface */
     setRegister(BMI160_IF_CONF, 0x32);
 
-    /* Configure QMC5883L Sensor */
-    /* Wake QMC5883L up */
-    setRegister(BMI160_MAG_IF_4, 0x01);
-    setRegister(BMI160_MAG_IF_3, 0x0B);
+    /* Configure HMC5883L Sensor */
+    // Set 75Hz data rate with 4 samples averaging
+    setRegister(BMI160_MAG_IF_4, 0x58);
+    // Set write to Configuration Register A
+    setRegister(BMI160_MAG_IF_3, 0x00);
     delay(3);
 
-    /* Enable continuous measurement mode 200Hz */
-    setRegister(BMI160_MAG_IF_4, 0x1D);
-    setRegister(BMI160_MAG_IF_3, 0x09);
+    // Set measurement gain to +/- 1.3Ga
+    setRegister(BMI160_MAG_IF_4, 0x01);
+    // Set write to Configuration Register B
+    setRegister(BMI160_MAG_IF_3, 0x01);
+    delay(3);
+
+    // Enable high speed I2C mode and enable continuous measurement mode
+    setRegister(BMI160_MAG_IF_4, 0x80);
+    // Set write to Mode Register
+    setRegister(BMI160_MAG_IF_3, 0x02);
+    delay(3);
 
     /* Configure MAG interface for Data mode */
     /* Configure MAG read data address */
-    setRegister(BMI160_MAG_IF_2, 0x00);
-    /* Configure MAG interface data rate (200Hz) */
-    setRegister(BMI160_MAG_CONF, BMI160_MAG_CONF_200Hz);
+    setRegister(BMI160_MAG_IF_2, 0x03);
+    /* Configure MAG interface data rate (100Hz) */
+    setRegister(BMI160_MAG_CONF, BMI160_MAG_CONF_100Hz);
 
     /* Enable MAG read mode */
     setRegister(BMI160_MAG_IF_1, BMI160_MAG_MAN_DIS);

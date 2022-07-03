@@ -60,6 +60,7 @@ THE SOFTWARE.
 #define BMI160_MAG_MAN_EN           0x83
 #define BMI160_MAG_MAN_DIS          0x03
 
+#define BMI160_MAG_CONF_100Hz       0x08
 #define BMI160_MAG_CONF_200Hz       0x09
 
 #define BMI160_CMD_MAG_MODE_NORMAL  0x19
