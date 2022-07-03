@@ -3324,32 +3324,42 @@ void MPU9250_Base::initilaizeMagnetometer() {
     setMasterClockSpeed(0x0D);
     setI2CMasterModeEnabled(true);
 
-    // Set the I2C slave address of QMC5883L and set for write.
-    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_ADDR, 0x0D|0x80);
-    // I2C slave 0 register address from where to begin data transfer
-    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_REG, 0x0B);
-    // Enable QMC5883L
-    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_DO, 0x01);
+    // Set the I2C slave address of HMC5883L and set for write.
+    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_ADDR, 0x1E);
+    // Set write to Configuration Register A
+    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_REG, 0x00);
+    // Set 75Hz data rate with 4 samples averaging
+    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_DO, 0x58);
     // Enable I2C and write 1 byte
     I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_CTRL, 0x81);
     delay(50);
 
-    // Set the I2C slave address of QMC5883: and set for write.
-    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_ADDR, 0x0D|0x80);
-    // I2C slave 0 register address from where to begin data transfer
-    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_REG, 0x09);
-    // Start measurements in continuous mode 200hz
-    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_DO, 0x1D);
+    // Set the I2C slave address of HMC5883L and set for write.
+    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_ADDR, 0x1E);
+    // Set write to Configuration Register B
+    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_REG, 0x01);
+    // Set measurement gain to +/- 1.3Ga
+    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_DO, 0x02);
+    // Enable I2C and write 1 byte
+    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_CTRL, 0x81);
+    delay(50);
+
+    // Set the I2C slave address of HMC5883L and set for write.
+    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_ADDR, 0x1E);
+    // Set write to Mode Register
+    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_REG, 0x02);
+    // Enable high speed I2C mode and enable continuous measurement mode
+    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_DO, 0x80);
     // Enable I2C and write 1 byte
     I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_CTRL, 0x81);
     delay(50);
 
     // Set up magnetometer as slave 0 for reading
-    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_ADDR, 0x0D|0x80);
+    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_ADDR, 0x1E|0x80);
     // Start reading from HXL register
-    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_REG,  0x00);
+    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_REG,  0x03);
     // Read 6 bytes, group LSB and MSB
-    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_CTRL, 0x96);
+    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_CTRL, 0x97);
     delay(10);
 }
 
@@ -3369,16 +3379,16 @@ bool MPU9250_Base::testConnectionMagnetometer() {
  */
 uint8_t MPU9250_Base::getMagnetometerDeviceID() {
     // Set up magnetometer as slave 0 for reading
-    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_ADDR, 0x0D|0x80);
+    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_ADDR, 0x1E|0x80);
     // Start reading from WHO_AM_I register
-    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_REG,  0x0D);
+    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_REG,  0x0A);
     I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_CTRL, 0x81);
     delay(10);
     I2Cdev::readByte(devAddr, MPU9250_RA_EXT_SENS_DATA_00, buffer);
     // return reading from HXL register
-    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_REG,  0x00);
+    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_REG,  0x03);
     // Read 7 bytes (until ST2 register), group LSB and MSB
-    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_CTRL, 0x96);
+    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_CTRL, 0x97);
     delay(10);
     return buffer[0];
 }
@@ -3400,7 +3410,7 @@ void MPU9250_Base::getMagnetometerAdjustments(float adjustments[3]) {
 void MPU9250_Base::getMagnetometer(int16_t* mx, int16_t* my, int16_t* mz) {
     //read mag from SLV0 external sensor registers
     I2Cdev::readBytes(devAddr, MPU9250_RA_EXT_SENS_DATA_00, 7, buffer);
-    if (!(buffer[6] & 0x8)) { // Check ST2 for sensor overflow
+    if (buffer[6]) { // Check ST2 for sensor overflow
         *mx = (((int16_t)buffer[1]) << 8) | buffer[0];
         *my = (((int16_t)buffer[3]) << 8) | buffer[2];
         *mz = (((int16_t)buffer[5]) << 8) | buffer[4];
