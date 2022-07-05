@@ -57,8 +57,8 @@ THE SOFTWARE.
 #define BMI160_MAG_IF_4             0x4F
 #define BMI160_IF_CONF              0x6B
 
-#define BMI160_MAG_MAN_EN           0x83
-#define BMI160_MAG_MAN_DIS          0x03
+#define BMI160_MAG_SETUP_MODE       0x80
+#define BMI160_MAG_DATA_MODE        0x03
 
 #define BMI160_MAG_CONF_200Hz       0x09
 

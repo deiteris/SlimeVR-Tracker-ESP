@@ -76,15 +76,15 @@ void BMI160::initialize(uint8_t addr)
 {
     devAddr = addr;
     /* Issue a soft-reset to bring the device into a clean state */
-    I2CdevMod::writeByte(devAddr, BMI160_RA_CMD, BMI160_CMD_SOFT_RESET);
+    setRegister(BMI160_RA_CMD, BMI160_CMD_SOFT_RESET);
     delay(1);
 
     /* Power up the accelerometer */
-    I2CdevMod::writeByte(devAddr, BMI160_RA_CMD, BMI160_CMD_ACC_MODE_NORMAL);
+    setRegister(BMI160_RA_CMD, BMI160_CMD_ACC_MODE_NORMAL);
     delay(BMI160_ACCEL_POWERUP_DELAY_MS);
 
     /* Power up the gyroscope */
-    I2CdevMod::writeByte(devAddr, BMI160_RA_CMD, BMI160_CMD_GYR_MODE_NORMAL);
+    setRegister(BMI160_RA_CMD, BMI160_CMD_GYR_MODE_NORMAL);
     delay(BMI160_GYRO_POWERUP_DELAY_MS);
 
     setGyroRate(BMI160_GYRO_RATE_800HZ);
@@ -100,11 +100,6 @@ void BMI160::initialize(uint8_t addr)
     setAccelDLPFMode(BMI160_DLPF_MODE_OSR4);
     delay(1);
 
-    /* Configure MAG interface and setup mode */
-    /* Set MAG interface normal power mode */
-    setRegister(BMI160_RA_CMD, BMI160_CMD_MAG_MODE_NORMAL);
-    delay(60); 
-
     setRegister(BMI160_RA_CMD, BMI160_EN_PULL_UP_REG_1);
     setRegister(BMI160_RA_CMD, BMI160_EN_PULL_UP_REG_2);
     setRegister(BMI160_RA_CMD, BMI160_EN_PULL_UP_REG_3);
@@ -112,13 +107,13 @@ void BMI160::initialize(uint8_t addr)
     setRegister(BMI160_7F, BMI160_EN_PULL_UP_REG_5);
 
     /* Set MAG I2C address */
-    setRegister(BMI160_MAG_IF_0, 0x0D >> 1); // 0 bit of address is reserved and needs to be shited
+    setRegister(BMI160_MAG_IF_0, 0x0D << 1); // 0 bit of address is reserved and needs to be shifted
     
     /* Enable MAG setup mode, set read out offset to MAX and burst length to 8 */
-    setRegister(BMI160_MAG_IF_1, BMI160_MAG_MAN_EN);
+    setRegister(BMI160_MAG_IF_1, BMI160_MAG_SETUP_MODE);
     
     /* Enable MAG interface */
-    setRegister(BMI160_IF_CONF, 0x32);
+    setRegister(BMI160_IF_CONF, 0x20);
 
     /* Configure QMC5883L Sensor */
     /* Wake QMC5883L up */
@@ -137,7 +132,7 @@ void BMI160::initialize(uint8_t addr)
     setRegister(BMI160_MAG_CONF, BMI160_MAG_CONF_200Hz);
 
     /* Enable MAG read mode */
-    setRegister(BMI160_MAG_IF_1, BMI160_MAG_MAN_DIS);
+    setRegister(BMI160_MAG_IF_1, BMI160_MAG_DATA_MODE);
 
     /* Only PIN1 interrupts currently supported - map all interrupts to PIN1 */
     I2CdevMod::writeByte(devAddr, BMI160_RA_INT_MAP_0, 0xFF);
