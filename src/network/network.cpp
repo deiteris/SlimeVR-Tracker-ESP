@@ -28,7 +28,7 @@ void Network::setUp() {
     WiFiNetwork::setUp();
 }
 
-void Network::update(std::vector<std::unique_ptr<Sensor>> sensors) {
+void Network::update(std::vector<std::unique_ptr<Sensor>> const& sensors) {
     WiFiNetwork::upkeep();
     if(WiFiNetwork::isConnected()) {
         if(lastWifiConnected == false) {

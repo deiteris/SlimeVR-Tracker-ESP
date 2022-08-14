@@ -66,22 +66,22 @@ namespace SlimeVR
                 }
 
 #if IMUS & IMU_BNO080 || IMUS & IMU_BNO085 || IMUS & IMU_BNO086
-                sensors.push_back(std::make_unique<BNO080Sensor>(i, IMU_BNO080, ports[i].addr, rotation, intPin));
+                sensors.emplace_back(std::make_unique<BNO080Sensor>(i, IMU_BNO080, ports[i].addr, rotation, intPin));
 #endif
 #if IMUS & IMU_BNO055
-                sensors.push_back(std::make_unique<BNO055Sensor>(i, IMU_BNO055, ports[i].addr, rotation));
+                sensors.emplace_back(std::make_unique<BNO055Sensor>(i, IMU_BNO055, ports[i].addr, rotation));
 #endif
 #if IMUS & IMU_MPU9250
-                sensors.push_back(std::make_unique<MPU9250Sensor>(i, IMU_MPU9250, ports[i].addr, rotation));
+                sensors.emplace_back(std::make_unique<MPU9250Sensor>(i, IMU_MPU9250, ports[i].addr, rotation));
 #endif
 #if IMUS & IMU_BMI160
-                sensors.push_back(std::make_unique<BMI160Sensor>(i, IMU_BMI160, ports[i].addr, rotation));
+                sensors.emplace_back(std::make_unique<BMI160Sensor>(i, IMU_BMI160, ports[i].addr, rotation));
 #endif
 #if IMUS & IMU_MPU6500 || IMUS & IMU_MPU6050
-                sensors.push_back(std::make_unique<MPU6050Sensor>(i, IMU_MPU6050, ports[i].addr, rotation));
+                sensors.emplace_back(std::make_unique<MPU6050Sensor>(i, IMU_MPU6050, ports[i].addr, rotation));
 #endif
 #if IMUS & IMU_ICM20948
-                sensors.push_back(std::make_unique<ICM20948Sensor>(i, IMU_ICM20948, ports[i].addr, rotation));
+                sensors.emplace_back(std::make_unique<ICM20948Sensor>(i, IMU_ICM20948, ports[i].addr, rotation));
 #endif
             }
             for (auto &sensor : sensors)

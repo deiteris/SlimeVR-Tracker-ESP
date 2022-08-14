@@ -74,7 +74,7 @@ namespace I2CSCAN
 
         TwoWire w;
         w.begin(portArray[sdaPin], portArray[sclPin]);
-        uint8_t error, address;
+        uint8_t error = 0;
         bool found = false;
         // The i2c_scanner uses the return value of
         // the Write.endTransmisstion to see if

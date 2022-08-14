@@ -48,7 +48,7 @@ namespace SlimeVR
 
             void update();
 
-            std::vector<std::unique_ptr<Sensor>> getSensors() { return sensors; };
+            std::vector<std::unique_ptr<Sensor>> const& getSensors() { return sensors; };
 
         private:
             SlimeVR::Logging::Logger m_Logger;
