@@ -88,7 +88,7 @@ namespace Network {
     void sendError(uint8_t reason, uint8_t sensorId);
 
     // PACKET_SENSOR_INFO 15
-    void sendSensorInfo(Sensor * sensor);
+    void sendSensorInfo(Sensor *sensor);
 
     // PACKET_ROTATION_DATA 17
     void sendRotationData(Quat * const quaternion, uint8_t dataType, uint8_t accuracyInfo, uint8_t sensorId);

@@ -28,14 +28,15 @@ void Network::setUp() {
     WiFiNetwork::setUp();
 }
 
-void Network::update(Sensor * const sensor, Sensor * const sensor2) {
+void Network::update(std::vector<std::unique_ptr<Sensor>> sensors) {
     WiFiNetwork::upkeep();
     if(WiFiNetwork::isConnected()) {
         if(lastWifiConnected == false) {
             lastWifiConnected = true;
             ServerConnection::resetConnection(); // WiFi was reconnected, reconnect to the server
         }
-        ServerConnection::update(sensor, sensor2);
+        for (auto& sensor : sensors)
+            ServerConnection::update(sensor.get());
     } else {
         lastWifiConnected = false;
     }

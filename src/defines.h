@@ -26,11 +26,8 @@
 // ================================================
 
 // Set parameters of IMU and board used
-#define IMU IMU_BNO085
-#define SECOND_IMU IMU
+#define IMUS IMU_BNO085 + IMU_MPU6050
 #define BOARD BOARD_SLIMEVR
-#define IMU_ROTATION DEG_90
-#define SECOND_IMU_ROTATION DEG_270
 
 // Battery monitoring options (comment to disable):
 //   BAT_EXTERNAL for ADC pin, 
@@ -47,6 +44,21 @@
 // #define BATTERY_SHIELD_R1 100 // Board voltage divider resistor Ain to GND in kOhm
 // #define BATTERY_SHIELD_R2 220 // Board voltage divider resistor Ain to INPUT_BOARD in kOhm
 
+// TODO: 
+// 1. Scan all ports for I2C addresses for IMUs defined (currently, only IMU and SECOND_IMU).
+// 2. Look up interrupt pins for specific IMUs, if applicable.
+// 3. Pass the wire object for found I2C port.
+struct ImuInfo {
+  uint8_t address;
+  uint8_t intPin;
+  uint8_t sclPin;
+  float rotation;
+};
+
+std::vector<ImuInfo> const imuInfos = {
+  {0x4B, D2, D4, DEG_90},
+};
+
 // LED configuration:
 // Configuration Priority 1 = Highest:
 // 1. LED_PIN
@@ -61,60 +73,32 @@
 
 // Board-specific configurations
 #if BOARD == BOARD_SLIMEVR
-  #define PIN_IMU_SDA 14
-  #define PIN_IMU_SCL 12
-  #define PIN_IMU_INT 16
-  #define PIN_IMU_INT_2 13
   #define PIN_BATTERY_LEVEL 17
   #define LED_PIN 2
   #define LED_INVERTED true
 #elif BOARD == BOARD_SLIMEVR_LEGACY || BOARD == BOARD_SLIMEVR_DEV
-  #define PIN_IMU_SDA 4
-  #define PIN_IMU_SCL 5
-  #define PIN_IMU_INT 10
-  #define PIN_IMU_INT_2 13
   #define PIN_BATTERY_LEVEL 17
   #define LED_PIN 2
   #define LED_INVERTED true
 #elif BOARD == BOARD_NODEMCU || BOARD == BOARD_WEMOSD1MINI
-  #define PIN_IMU_SDA D2
-  #define PIN_IMU_SCL D1
-  #define PIN_IMU_INT D5
-  #define PIN_IMU_INT_2 D6
   #define PIN_BATTERY_LEVEL A0
 //  #define LED_PIN 2
 //  #define LED_INVERTED true
 #elif BOARD == BOARD_ESP01
-  #define PIN_IMU_SDA 2
-  #define PIN_IMU_SCL 0
-  #define PIN_IMU_INT 255
-  #define PIN_IMU_INT_2 255
   #define PIN_BATTERY_LEVEL 255
   #define LED_PIN LED_OFF
   #define LED_INVERTED false
 #elif BOARD == BOARD_TTGO_TBASE
-  #define PIN_IMU_SDA 5
-  #define PIN_IMU_SCL 4
-  #define PIN_IMU_INT 14
-  #define PIN_IMU_INT_2 13
   #define PIN_BATTERY_LEVEL A0
 //  #define LED_PIN 2
 //  #define LED_INVERTED false
 #elif BOARD == BOARD_CUSTOM
   // Define pins by the examples above
 #elif BOARD == BOARD_WROOM32
-  #define PIN_IMU_SDA 21
-  #define PIN_IMU_SCL 22
-  #define PIN_IMU_INT 23
-  #define PIN_IMU_INT_2 25
   #define PIN_BATTERY_LEVEL 36
 //  #define LED_PIN 2
 //  #define LED_INVERTED false
 #elif BOARD == BOARD_LOLIN_C3_MINI
-  #define PIN_IMU_SDA 10
-  #define PIN_IMU_SCL 8
-  #define PIN_IMU_INT 6
-  #define PIN_IMU_INT_2 7
   #define PIN_BATTERY_LEVEL 3
 //  #define LED_PIN 2
 //  #define LED_INVERTED false

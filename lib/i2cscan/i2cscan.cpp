@@ -10,7 +10,6 @@ String portMap[] = {"4", "13", "14", "15", "16", "17", "18", "19", "21", "22", "
 
 namespace I2CSCAN
 {
-
     uint8_t pickDevice(uint8_t addr1, uint8_t addr2, bool scanIfNotFound) {
         if(I2CSCAN::isI2CExist(addr1))
             return addr1;
@@ -43,6 +42,66 @@ namespace I2CSCAN
         if(!found) {
             Serial.println("[ERR] I2C: No I2C devices found");
         }
+    }
+
+    std::vector<PortInfo> scani2cports(std::set<uint8_t> addresses)
+    {
+        std::vector<PortInfo> ports;
+        for (uint8_t sdaPin = 0; sdaPin < sizeof(portArray); sdaPin++)
+        {
+            for (uint8_t sclPin = 0; sclPin < sizeof(portArray); sclPin++)
+            {
+                for (uint8_t const &address : addresses) 
+                {
+                    if (!checkI2C(sdaPin, sclPin, address)) {
+                        continue;
+                    }
+                    PortInfo port = {address, sdaPin, sclPin};
+                    ports.push_back(port);
+                }
+            }
+        }
+        if(ports.empty()) {
+            Serial.println("[ERR] I2C: No I2C devices found");
+        }
+        return ports;
+    }
+
+    bool checkI2C(uint8_t sdaPin, uint8_t sclPin, uint8_t address)
+    {
+        if (sdaPin == sclPin)
+            return false;
+
+        TwoWire w;
+        w.begin(portArray[sdaPin], portArray[sclPin]);
+        uint8_t error, address;
+        bool found = false;
+        // The i2c_scanner uses the return value of
+        // the Write.endTransmisstion to see if
+        // a device did acknowledge to the address.
+        w.beginTransmission(address);
+        error = w.endTransmission();
+
+        if (error == 0)
+        {
+            Serial.print("[DBG] I2C (@ " + portMap[sdaPin] + " : " + portMap[sclPin] + "): ");
+            Serial.print("I2C device found at address 0x");
+            if (address < 16)
+                Serial.print("0");
+            Serial.print(address, HEX);
+            Serial.println("  !");
+
+            found = true;
+        }
+        else if (error == 4)
+        {
+            Serial.print("[ERR] I2C (@ " + portMap[sdaPin] + " : " + portMap[sclPin] + "): ");
+            Serial.print("Unknown error at address 0x");
+            if (address < 16)
+                Serial.print("0");
+            Serial.println(address, HEX);
+        }
+        return found;
     }
 
     bool checkI2C(uint8_t i, uint8_t j)

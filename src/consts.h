@@ -24,15 +24,15 @@
 #define SLIMEVR_CONSTS_H_
 
 // List of constants used in other places
-#define IMU_MPU9250 1
-#define IMU_MPU6500 2
-#define IMU_BNO080 3
-#define IMU_BNO085 4
-#define IMU_BNO055 5
-#define IMU_MPU6050 6
-#define IMU_BNO086 7
-#define IMU_BMI160 8
-#define IMU_ICM20948 9
+#define IMU_MPU9250   (1 << 0)
+#define IMU_MPU6500   (1 << 1)
+#define IMU_BNO080    (1 << 2)
+#define IMU_BNO085    (1 << 3)
+#define IMU_BNO055    (1 << 4)
+#define IMU_MPU6050   (1 << 5)
+#define IMU_BNO086    (1 << 6)
+#define IMU_BMI160    (1 << 7)
+#define IMU_ICM20948  (1 << 8)
 
 #define BOARD_SLIMEVR_LEGACY 1
 #define BOARD_SLIMEVR_DEV 2

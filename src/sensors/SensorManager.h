@@ -24,6 +24,8 @@
 #ifndef SLIMEVR_SENSORMANAGER
 #define SLIMEVR_SENSORMANAGER
 
+#include <memory>
+#include <set>
 #include "globals.h"
 #include "sensor.h"
 #include "EmptySensor.h"
@@ -37,26 +39,22 @@ namespace SlimeVR
         {
         public:
             SensorManager()
-                : m_Logger(SlimeVR::Logging::Logger("SensorManager")), m_Sensor1(new EmptySensor(0)), m_Sensor2(new EmptySensor(0)) {}
+                : m_Logger(SlimeVR::Logging::Logger("SensorManager")) {}
             ~SensorManager()
-            {
-                delete m_Sensor1;
-                delete m_Sensor2;
-            }
+            {}
 
             void setup();
             void postSetup();
 
             void update();
 
-            Sensor *getFirst() { return m_Sensor1; };
-            Sensor *getSecond() { return m_Sensor2; };
+            std::vector<std::unique_ptr<Sensor>> getSensors() { return sensors; };
 
         private:
             SlimeVR::Logging::Logger m_Logger;
 
-            Sensor *m_Sensor1;
-            Sensor *m_Sensor2;
+            std::set<uint8_t> scanAddresses;
+            std::vector<std::unique_ptr<Sensor>> sensors;
         };
     }
 }

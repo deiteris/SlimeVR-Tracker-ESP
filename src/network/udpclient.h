@@ -32,7 +32,7 @@
 
 namespace ServerConnection {
     void connect();
-    void update(Sensor * const sensor, Sensor * const sensor2);
+    void update(Sensor * sensor);
     void resetConnection();
     bool isConnected();
 }

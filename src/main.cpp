@@ -66,12 +66,6 @@ void setup()
 
     SerialCommands::setUp();
 
-#if IMU == IMU_MPU6500 || IMU == IMU_MPU6050 || IMU == IMU_MPU9250
-    I2CSCAN::clearBus(PIN_IMU_SDA, PIN_IMU_SCL); // Make sure the bus isn't stuck when resetting ESP without powering it down
-    // Do it only for MPU, cause reaction of BNO to this is not investigated yet
-#endif
-    // join I2C bus
-    Wire.begin(PIN_IMU_SDA, PIN_IMU_SCL);
 #ifdef ESP8266
     Wire.setClockStretchLimit(150000L); // Default stretch limit 150mS
 #endif
@@ -97,7 +91,7 @@ void loop()
 {
     SerialCommands::update();
     OTA::otaUpdate();
-    Network::update(sensorManager.getFirst(), sensorManager.getSecond());
+    Network::update(sensorManager.getSensors());
     sensorManager.update();
     battery.Loop();
     ledManager.update();

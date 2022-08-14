@@ -40,8 +40,7 @@ unsigned long lastPacketMs;
 
 bool connected = false;
 
-uint8_t sensorStateNotified1 = 0;
-uint8_t sensorStateNotified2 = 0;
+uint8_t sensorStateNotified = 0;
 unsigned long lastSensorInfoPacket = 0;
 
 uint8_t serialBuffer[128];
@@ -376,7 +375,7 @@ void Network::sendHandshake() {
         // This is kept for backwards compatibility,
         // but the latest SlimeVR server will not initialize trackers
         // with firmware build > 8 until it recieves sensor info packet
-        DataTransfer::sendInt(IMU);
+        DataTransfer::sendInt(IMUS);
         DataTransfer::sendInt(HARDWARE_MCU);
         DataTransfer::sendInt(0); 
         DataTransfer::sendInt(0);
@@ -551,13 +550,10 @@ void returnLastPacket(int len) {
     }
 }
 
-void updateSensorState(Sensor * const sensor, Sensor * const sensor2) {
+void updateSensorState(Sensor * sensor) {
     if(millis() - lastSensorInfoPacket > 1000) {
         lastSensorInfoPacket = millis();
-        if(sensorStateNotified1 != sensor->getSensorState())
-            Network::sendSensorInfo(sensor);
-        if(sensorStateNotified2 != sensor2->getSensorState())
-            Network::sendSensorInfo(sensor2);
+        Network::sendSensorInfo(sensor);
     }
 }
 
@@ -624,7 +620,7 @@ void ServerConnection::resetConnection() {
     statusManager.setStatus(SlimeVR::Status::SERVER_CONNECTING, true);
 }
 
-void ServerConnection::update(Sensor * const sensor, Sensor * const sensor2) {
+void ServerConnection::update(Sensor * sensor) {
     if(connected) {
         int packetSize = Udp.parsePacket();
         if (packetSize)
@@ -664,11 +660,7 @@ void ServerConnection::update(Sensor * const sensor, Sensor * const sensor2) {
                     udpClientLogger.warn("Wrong sensor info packet");
                     break;
                 }
-                if(incomingPacket[4] == 0) {
-                    sensorStateNotified1 = incomingPacket[5];
-                } else if(incomingPacket[4] == 1) {
-                    sensorStateNotified2 = incomingPacket[5];
-                }
+                sensorStateNotified = incomingPacket[5];
                 break;
             }
         }
@@ -681,15 +673,14 @@ void ServerConnection::update(Sensor * const sensor, Sensor * const sensor2) {
             statusManager.setStatus(SlimeVR::Status::SERVER_CONNECTING, true);
 
             connected = false;
-            sensorStateNotified1 = false;
-            sensorStateNotified2 = false;
+            sensorStateNotified = false;
             udpClientLogger.warn("Connection to server timed out");
         }
     }
         
     if(!connected) {
         connect();
-    } else if(sensorStateNotified1 != sensor->isWorking() || sensorStateNotified2 != sensor2->isWorking()) {
-        updateSensorState(sensor, sensor2);
+    } else if(sensorStateNotified != sensor->isWorking()) {
+        updateSensorState(sensor);
     }
 }
