@@ -38,7 +38,7 @@
 class Sensor
 {
 public:
-    Sensor(const char *sensorName, uint8_t type, uint8_t id, uint8_t address, float rotation)
+    Sensor(const char *sensorName, uint16_t type, uint8_t id, uint8_t address, float rotation)
         : addr(address), sensorId(id), sensorType(type), sensorOffset({Quat(Vector3(0, 0, 1), rotation)}), m_Logger(SlimeVR::Logging::Logger(sensorName))
     {
         char buf[4];
@@ -80,7 +80,7 @@ protected:
     SlimeVR::Logging::Logger m_Logger;
 };
 
-const char * getIMUNameByType(int imuType);
+const char * getIMUNameByType(uint16_t imuType);
 
 enum SensorStatus {
     SENSOR_OFFLINE = 0,

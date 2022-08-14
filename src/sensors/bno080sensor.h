@@ -30,7 +30,7 @@
 class BNO080Sensor : public Sensor
 {
 public:
-    BNO080Sensor(uint8_t id, uint8_t type, uint8_t address, float rotation, uint8_t intPin)
+    BNO080Sensor(uint8_t id, uint16_t type, uint8_t address, float rotation, uint8_t intPin)
         : Sensor("BNO080Sensor", type, id, address, rotation), m_IntPin(intPin) {};
     ~BNO080Sensor(){};
     void motionSetup() override final;

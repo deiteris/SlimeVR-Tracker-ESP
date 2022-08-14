@@ -40,7 +40,7 @@ void Sensor::sendData() {
     }
 }
 
-const char * getIMUNameByType(int imuType) {
+const char * getIMUNameByType(uint16_t imuType) {
     switch(imuType) {
         case IMU_MPU9250:
             return "MPU9250";
