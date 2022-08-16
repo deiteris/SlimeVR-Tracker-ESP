@@ -3338,7 +3338,7 @@ void MPU9250_Base::initilaizeMagnetometer() {
     I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_ADDR, 0x0D);
     // I2C slave 0 register address from where to begin data transfer
     I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_REG, 0x09);
-    // Start measurements in continuous mode 200hz
+    // Start measurements in continuous mode 200hz at 8G scale
     I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_DO, 0x1D);
     // Enable I2C and write 1 byte
     I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_CTRL, 0x81);
