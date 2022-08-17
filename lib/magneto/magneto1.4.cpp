@@ -3,17 +3,17 @@
 //Magneto 1.3 4/24/2020
 void CalculateCalibration(float *buf, int sampleCount, float BAinv[4][3])
 {
-    double xs = 0, xave = 0;
+    float xs = 0, xave = 0;
 
     //
     // calculate mean (norm) and standard deviation for possible outlier rejection
     //
     for (int i = 0; i < sampleCount; i++)
     {
-        double x = buf[i * 3 + 0];
-        double y = buf[i * 3 + 1];
-        double z = buf[i * 3 + 2];
-        double x2 = x * x + y * y + z * z;
+        float x = buf[i * 3 + 0];
+        float y = buf[i * 3 + 1];
+        float z = buf[i * 3 + 2];
+        float x2 = x * x + y * y + z * z;
         xs += x2;
         xave += sqrt(x2);
     }
@@ -22,21 +22,21 @@ void CalculateCalibration(float *buf, int sampleCount, float BAinv[4][3])
 
     // third time through!
     // allocate array space for accepted measurements
-    double* D = new double[10 * sampleCount];
-    double* raw = new double[3 * sampleCount];
+    float* D = new float[10 * sampleCount];
+    float* raw = new float[3 * sampleCount];
 
     {
         // summarize statistics, give user opportunity to reject outlying measurements
-        double nxsrej = 0;
+        float nxsrej = 0;
 
         int j = 0;  //array index for good measurements
         // printf("\r\nAccepted measurements (file index, internal index, ...)\r\n");
         for (int i = 0; i < sampleCount; i++)
         {
-            double x = buf[i * 3 + 0];
-            double y = buf[i * 3 + 1];
-            double z = buf[i * 3 + 2];
-            double x2 = sqrt(x * x + y * y + z * z);  //vector length
+            float x = buf[i * 3 + 0];
+            float y = buf[i * 3 + 1];
+            float z = buf[i * 3 + 2];
+            float x2 = sqrt(x * x + y * y + z * z);  //vector length
             x2 = fabs(x2 - xave) / xs; //standard deviation from mean
             if ((nxsrej == 0) || (x2 <= nxsrej)) {
                 // accepted measurement
@@ -66,20 +66,20 @@ void CalculateCalibration(float *buf, int sampleCount, float BAinv[4][3])
 
     //if (hm == 0.0) hm = xave;
     //printf("\r\nSet Hm = %8.1f\r\n", hm);
-    double hm = xave;
+    float hm = xave;
 
     // allocate memory for matrix S
-    double* S = new double[10 * 10];
+    float* S = new float[10 * 10];
     Multiply_Self_Transpose(S, D, 10, sampleCount);
     delete[] D;
 
-    double* S11 = new double[6 * 6];
+    float* S11 = new float[6 * 6];
     Get_Submatrix(S11, 6, 6, S, 10, 0, 0);
-    double* S12 = new double[6 * 4];
+    float* S12 = new float[6 * 4];
     Get_Submatrix(S12, 6, 4, S, 10, 0, 6);
-    double* S12t = new double[4 * 6];
+    float* S12t = new float[4 * 6];
     Get_Submatrix(S12t, 4, 6, S, 10, 6, 0);
-    double* S22 = new double[4 * 4];
+    float* S22 = new float[4 * 4];
     Get_Submatrix(S22, 4, 4, S, 10, 6, 6);
     delete[] S;
 
@@ -87,25 +87,25 @@ void CalculateCalibration(float *buf, int sampleCount, float BAinv[4][3])
     Choleski_LU_Inverse(S22, 4);
 
     // Calculate S22a = S22 * S12t   4*6 = 4x4 * 4x6   C = AB
-    double* S22a = new double[4 * 6];
+    float* S22a = new float[4 * 6];
     Multiply_Matrices(S22a, S22, 4, 4, S12t, 6);
     delete[] S22;
     delete[] S12t;
 
     // Then calculate S22b = S12 * S22a      ( 6x6 = 6x4 * 4x6)
-    double* S22b = new double[6 * 6];
+    float* S22b = new float[6 * 6];
     Multiply_Matrices(S22b, S12, 6, 4, S22a, 6);
     delete[] S12;
 
     // Calculate SS = S11 - S22b
-    double* SS = new double[6 * 6];
+    float* SS = new float[6 * 6];
     for (int i = 0; i < 36; i++)
         SS[i] = S11[i] - S22b[i];
     delete[] S11;
     delete[] S22b;
 
     // Create pre-inverted constraint matrix C
-    double* C = new double[6 * 6]{
+    float* C = new float[6 * 6]{
         0.0, 0.5, 0.5,  0.0,  0.0,  0.0,
         0.5, 0.0, 0.5,  0.0,  0.0,  0.0,
         0.5, 0.5, 0.0,  0.0,  0.0,  0.0,
@@ -113,23 +113,23 @@ void CalculateCalibration(float *buf, int sampleCount, float BAinv[4][3])
         0.0, 0.0, 0.0,  0.0, -0.25, 0.0,
         0.0, 0.0, 0.0,  0.0,  0.0, -0.25
     };
-    double* E = new double[6 * 6];
+    float* E = new float[6 * 6];
     Multiply_Matrices(E, C, 6, 6, SS, 6);
     delete[] C;
     delete[] SS;
 
-    double* SSS = new double[6 * 6];
+    float* SSS = new float[6 * 6];
     Hessenberg_Form_Elementary(E, SSS, 6);
 
     int index = 0;
     {
-        double eigen_real[6];
-        double eigen_imag[6];
+        float eigen_real[6];
+        float eigen_imag[6];
 
         QR_Hessenberg_Matrix(E, SSS, eigen_real, eigen_imag, 6, 100);
         delete[] E;
 
-        double maxval = eigen_real[0];
+        float maxval = eigen_real[0];
         for (int i = 1; i < 6; i++)
         {
             if (eigen_real[i] > maxval)
@@ -140,7 +140,7 @@ void CalculateCalibration(float *buf, int sampleCount, float BAinv[4][3])
         }
     }
 
-    double* v1 = new double[6];
+    float* v1 = new float[6];
     v1[0] = SSS[index];
     v1[1] = SSS[index + 6];
     v1[2] = SSS[index + 12];
@@ -151,7 +151,7 @@ void CalculateCalibration(float *buf, int sampleCount, float BAinv[4][3])
 
     // normalize v1
     {
-        double norm = sqrt(v1[0] * v1[0] + v1[1] * v1[1] + v1[2] * v1[2] + v1[3] * v1[3] + v1[4] * v1[4] + v1[5] * v1[5]);
+        float norm = sqrt(v1[0] * v1[0] + v1[1] * v1[1] + v1[2] * v1[2] + v1[3] * v1[3] + v1[4] * v1[4] + v1[5] * v1[5]);
         v1[0] /= norm;
         v1[1] /= norm;
         v1[2] /= norm;
@@ -171,15 +171,15 @@ void CalculateCalibration(float *buf, int sampleCount, float BAinv[4][3])
     }
 
     // Calculate v2 = S22a * v1      ( 4x1 = 4x6 * 6x1)
-    double* v2 = new double[4];
+    float* v2 = new float[4];
     Multiply_Matrices(v2, S22a, 4, 6, v1, 1);
     delete[] S22a;
 
-    double* U = new double[3];
-    double* Q = new double[3 * 3];
-    double J;
+    float* U = new float[3];
+    float* Q = new float[3 * 3];
+    float J;
     {
-        double v[10];
+        float v[10];
         v[0] = v1[0];
         v[1] = v1[1];
         v[2] = v1[2];
@@ -210,9 +210,9 @@ void CalculateCalibration(float *buf, int sampleCount, float BAinv[4][3])
         J = v[9];
     }
 
-    double* B = new double[3];
+    float* B = new float[3];
     {
-        double Q_1[3 * 3];
+        float Q_1[3 * 3];
         for (int i = 0; i < 9; i++)
             Q_1[i] = Q[i];
         Choleski_LU_Decomposition(Q_1, 3);
@@ -227,9 +227,9 @@ void CalculateCalibration(float *buf, int sampleCount, float BAinv[4][3])
     }
 
     // First calculate QB = Q * B   ( 3x1 = 3x3 * 3x1)
-    double btqb;
+    float btqb;
     {
-        double QB[3];
+        float QB[3];
         Multiply_Matrices(QB, Q, 3, 3, B, 1);
 
         // Then calculate btqb = BT * QB    ( 1x1 = 1x3 * 3x1)
@@ -237,13 +237,13 @@ void CalculateCalibration(float *buf, int sampleCount, float BAinv[4][3])
     }
 
     // Calculate SQ, the square root of matrix Q
-    double* SSSS = new double[3 * 3];
+    float* SSSS = new float[3 * 3];
     Hessenberg_Form_Elementary(Q, SSSS, 3);
 
-    double* Dz = new double[3 * 3]{0};
+    float* Dz = new float[3 * 3]{0};
     {
-        double eigen_real3[3];
-        double eigen_imag3[3];
+        float eigen_real3[3];
+        float eigen_imag3[3];
         QR_Hessenberg_Matrix(Q, SSSS, eigen_real3, eigen_imag3, 3, 100);
         delete[] Q;
 
@@ -254,7 +254,7 @@ void CalculateCalibration(float *buf, int sampleCount, float BAinv[4][3])
 
     {
         // normalize eigenvectors
-        double norm = sqrt(SSSS[0] * SSSS[0] + SSSS[3] * SSSS[3] + SSSS[6] * SSSS[6]);
+        float norm = sqrt(SSSS[0] * SSSS[0] + SSSS[3] * SSSS[3] + SSSS[6] * SSSS[6]);
         SSSS[0] /= norm;
         SSSS[3] /= norm;
         SSSS[6] /= norm;
@@ -268,9 +268,9 @@ void CalculateCalibration(float *buf, int sampleCount, float BAinv[4][3])
         SSSS[8] /= norm;
     }
 
-    double* SQ = new double[3 * 3];
+    float* SQ = new float[3 * 3];
     {
-        double vdz[3 * 3];
+        float vdz[3 * 3];
         Multiply_Matrices(vdz, SSSS, 3, 3, Dz, 3);
         delete[] Dz;
         Transpose_Square_Matrix(SSSS, 3);
@@ -280,9 +280,9 @@ void CalculateCalibration(float *buf, int sampleCount, float BAinv[4][3])
 
 
     // hm = 0.569;
-    double* A_1 = new double[3 * 3];
+    float* A_1 = new float[3 * 3];
     // Calculate hmb = sqrt(btqb - J).
-    double hmb = sqrt(btqb - J);
+    float hmb = sqrt(btqb - J);
 
     for (int i = 0; i < 9; i++)
         A_1[i] = SQ[i] * hm / hmb;
@@ -310,7 +310,7 @@ void CalculateCalibration(float *buf, int sampleCount, float BAinv[4][3])
 //    Copy_Vector                                                             //
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-//  void Copy_Vector(double *d, double *s, int n)                             //
+//  void Copy_Vector(float *d, float *s, int n)                             //
 //                                                                            //
 //  Description:                                                              //
 //     Copy the n dimensional vector s(source) to the n dimensional           //
@@ -319,8 +319,8 @@ void CalculateCalibration(float *buf, int sampleCount, float BAinv[4][3])
 //     are installation dependent.                                            //
 //                                                                            //
 //  Arguments:                                                                //
-//      double *d  Pointer to the first element of the destination vector d.  //
-//      double *s  Pointer to the first element of the source vector s.       //
+//      float *d  Pointer to the first element of the destination vector d.  //
+//      float *s  Pointer to the first element of the source vector s.       //
 //      int    n   The number of elements of the source / destination vectors.//
 //                                                                            //
 //  Return Values:                                                            //
@@ -328,16 +328,16 @@ void CalculateCalibration(float *buf, int sampleCount, float BAinv[4][3])
 //                                                                            //
 //  Example:                                                                  //
 //     #define N                                                              //
-//     double v[N],  vd[N];                                                   //
+//     float v[N],  vd[N];                                                   //
 //                                                                            //
 //     (your code to initialize the vector v)                                 //
 //                                                                            //
 //     Copy_Vector(vd, v, N);                                                 //
 //     printf(" Vector vd is \n");                                            //
 ////////////////////////////////////////////////////////////////////////////////
-void Copy_Vector(double* d, double* s, int n)
+void Copy_Vector(float* d, float* s, int n)
 {
-    memcpy(d, s, sizeof(double) * n);
+    memcpy(d, s, sizeof(float) * n);
 }
 ////////////////////////////////////////////////////////////////////////////////
 // File: multiply_self_transpose.c                                            //
@@ -345,19 +345,19 @@ void Copy_Vector(double* d, double* s, int n)
 //    Multiply_Self_Transpose                                                 //
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-//  void Multiply_Self_Transpose(double *C, double *A, int nrows, int ncols ) //
+//  void Multiply_Self_Transpose(float *C, float *A, int nrows, int ncols ) //
 //                                                                            //
 //  Description:                                                              //
 //     Post multiply an nrows x ncols matrix A by its transpose.   The result //
 //     is an  nrows x nrows square symmetric matrix C, i.e. C = A A', where ' //
 //     denotes the transpose.                                                 //
-//     The matrix C should be declared as double C[nrows][nrows] in the       //
+//     The matrix C should be declared as float C[nrows][nrows] in the       //
 //     calling routine.  The memory allocated to C should not include any     //
 //     memory allocated to A.                                                 //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *C    Pointer to the first element of the matrix C.             //
-//     double *A    Pointer to the first element of the matrix A.             //
+//     float *C    Pointer to the first element of the matrix C.             //
+//     float *A    Pointer to the first element of the matrix A.             //
 //     int    nrows The number of rows of matrix A.                           //
 //     int    ncols The number of columns of the matrices A.                  //
 //                                                                            //
@@ -367,22 +367,22 @@ void Copy_Vector(double* d, double* s, int n)
 //  Example:                                                                  //
 //     #define N                                                              //
 //     #define M                                                              //
-//     double A[M][N], C[M][M];                                               //
+//     float A[M][N], C[M][M];                                               //
 //                                                                            //
 //     (your code to initialize the matrix A)                                 //
 //                                                                            //
 //     Multiply_Self_Transpose(&C[0][0], &A[0][0], M, N);                     //
 //     printf("The matrix C = AA ' is \n"); ...                               //
 ////////////////////////////////////////////////////////////////////////////////
-void Multiply_Self_Transpose(double* C, double* A, int nrows, int ncols)
+void Multiply_Self_Transpose(float* C, float* A, int nrows, int ncols)
 {
     int i, j, k;
-    double* pA = nullptr;
-    double* p_A = A;
-    double* pB;
-    double* pCdiag = C;
-    double* pC = C;
-    double* pCt;
+    float* pA = nullptr;
+    float* p_A = A;
+    float* pB;
+    float* pCdiag = C;
+    float* pC = C;
+    float* pCt;
 
     for (i = 0; i < nrows; pCdiag += nrows + 1, p_A = pA, i++) {
         pC = pCdiag;
@@ -402,20 +402,20 @@ void Multiply_Self_Transpose(double* C, double* A, int nrows, int ncols)
 //    Get_Submatrix                                                           //
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-//  void Get_Submatrix(double *S, int mrows, int mcols,                       //
-//                                   double *A, int ncols, int row, int col)  //
+//  void Get_Submatrix(float *S, int mrows, int mcols,                       //
+//                                   float *A, int ncols, int row, int col)  //
 //                                                                            //
 //  Description:                                                              //
 //     Copy the mrows and mcols of the nrows x ncols matrix A starting with   //
 //     A[row][col] to the submatrix S.                                        //
-//     Note that S should be declared double S[mrows][mcols] in the calling   //
+//     Note that S should be declared float S[mrows][mcols] in the calling   //
 //     routine.                                                               //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *S    Destination address of the submatrix.                     //
+//     float *S    Destination address of the submatrix.                     //
 //     int    mrows The number of rows of the matrix S.                       //
 //     int    mcols The number of columns of the matrix S.                    //
-//     double *A    Pointer to the first element of the matrix A[nrows][ncols]//
+//     float *A    Pointer to the first element of the matrix A[nrows][ncols]//
 //     int    ncols The number of columns of the matrix A.                    //
 //     int    row   The row of A corresponding to the first row of S.         //
 //     int    col   The column of A corresponding to the first column of S.   //
@@ -428,7 +428,7 @@ void Multiply_Self_Transpose(double* C, double* A, int nrows, int ncols)
 //     #define M                                                              //
 //     #define NB                                                             //
 //     #define MB                                                             //
-//     double A[M][N],  B[MB][NB];                                            //
+//     float A[M][N],  B[MB][NB];                                            //
 //     int row, col;                                                          //
 //                                                                            //
 //     (your code to set the matrix A, the row number row and column number   //
@@ -439,10 +439,10 @@ void Multiply_Self_Transpose(double* C, double* A, int nrows, int ncols)
 //     printf("The submatrix B is \n"); ... }                                 //
 ////////////////////////////////////////////////////////////////////////////////
 
-void Get_Submatrix(double* S, int mrows, int mcols,
-    double* A, int ncols, int row, int col)
+void Get_Submatrix(float* S, int mrows, int mcols,
+    float* A, int ncols, int row, int col)
 {
-    int number_of_bytes = sizeof(double) * mcols;
+    int number_of_bytes = sizeof(float) * mcols;
 
     for (A += row * ncols + col; mrows > 0; A += ncols, S += mcols, mrows--)
         memcpy(S, A, number_of_bytes);
@@ -461,7 +461,7 @@ void Get_Submatrix(double* S, int mrows, int mcols,
 ////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////
-//  int Choleski_LU_Decomposition(double *A, int n)                           //
+//  int Choleski_LU_Decomposition(float *A, int n)                           //
 //                                                                            //
 //  Description:                                                              //
 //     This routine uses Choleski's method to decompose the n x n positive    //
@@ -484,7 +484,7 @@ void Get_Submatrix(double* S, int mrows, int mcols,
 //     the inverse of A.                                                      //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *A   On input, the pointer to the first element of the matrix   //
+//     float *A   On input, the pointer to the first element of the matrix   //
 //                 A[n][n].  On output, the matrix A is replaced by the lower //
 //                 and upper triangular Choleski factorizations of A.         //
 //     int     n   The number of rows and/or columns of the matrix A.         //
@@ -496,23 +496,23 @@ void Get_Submatrix(double* S, int mrows, int mcols,
 //                                                                            //
 //  Example:                                                                  //
 //     #define N                                                              //
-//     double A[N][N];                                                        //
+//     float A[N][N];                                                        //
 //                                                                            //
 //     (your code to initialize the matrix A)                                 //
-//     err = Choleski_LU_Decomposition((double *) A, N);                      //
+//     err = Choleski_LU_Decomposition((float *) A, N);                      //
 //     if (err < 0) printf(" Matrix A is singular\n");                        //
 //     else { printf(" The LLt decomposition of A is \n");                    //
 //           ...                                                              //
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-int Choleski_LU_Decomposition(double* A, int n)
+int Choleski_LU_Decomposition(float* A, int n)
 {
     int i, k, p;
-    double* p_Lk0;                   // pointer to L[k][0]
-    double* p_Lkp;                   // pointer to L[k][p]
-    double* p_Lkk;                   // pointer to diagonal element on row k.
-    double* p_Li0;                   // pointer to L[i][0]
-    double reciprocal;
+    float* p_Lk0;                   // pointer to L[k][0]
+    float* p_Lkp;                   // pointer to L[k][p]
+    float* p_Lkk;                   // pointer to diagonal element on row k.
+    float* p_Li0;                   // pointer to L[i][0]
+    float reciprocal;
 
     for (k = 0, p_Lk0 = A; k < n; p_Lk0 += n, k++) {
 
@@ -556,7 +556,7 @@ int Choleski_LU_Decomposition(double* A, int n)
 
 
 ////////////////////////////////////////////////////////////////////////////////
-//  int Choleski_LU_Solve(double *LU, double *B, double *x,  int n)           //
+//  int Choleski_LU_Solve(float *LU, float *B, float *x,  int n)           //
 //                                                                            //
 //  Description:                                                              //
 //     This routine uses Choleski's method to solve the linear equation       //
@@ -567,10 +567,10 @@ int Choleski_LU_Decomposition(double* A, int n)
 //     subsequently solving the linear equation Ux = y for x.                 //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *LU  Pointer to the first element of the matrix whose elements  //
+//     float *LU  Pointer to the first element of the matrix whose elements  //
 //                 form the lower and upper triangular matrix factors of A.   //
-//     double *B   Pointer to the column vector, (n x 1) matrix, B            //
-//     double *x   Solution to the equation Ax = B.                           //
+//     float *B   Pointer to the column vector, (n x 1) matrix, B            //
+//     float *x   Solution to the equation Ax = B.                           //
 //     int     n   The number of rows and/or columns of the matrix LU.        //
 //                                                                            //
 //  Return Values:                                                            //
@@ -579,7 +579,7 @@ int Choleski_LU_Decomposition(double* A, int n)
 //                                                                            //
 //  Example:                                                                  //
 //     #define N                                                              //
-//     double A[N][N], B[N], x[N];                                            //
+//     float A[N][N], B[N], x[N];                                            //
 //                                                                            //
 //     (your code to create matrix A and column vector B)                     //
 //     err = Choleski_LU_Decomposition(&A[0][0], N);                          //
@@ -592,7 +592,7 @@ int Choleski_LU_Decomposition(double* A, int n)
 //     }                                                                      //
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-int Choleski_LU_Solve(double* LU, double B[], double x[], int n)
+int Choleski_LU_Solve(float* LU, float B[], float x[], int n)
 {
 
     //         Solve the linear equation Ly = B for y, where L is a lower
@@ -608,7 +608,7 @@ int Choleski_LU_Solve(double* LU, double B[], double x[], int n)
 
 
 ////////////////////////////////////////////////////////////////////////////////
-//  int Choleski_LU_Inverse(double *LU,  int n)                               //
+//  int Choleski_LU_Inverse(float *LU,  int n)                               //
 //                                                                            //
 //  Description:                                                              //
 //     This routine uses Choleski's method to find the inverse of the matrix  //
@@ -619,7 +619,7 @@ int Choleski_LU_Solve(double* LU, double B[], double x[], int n)
 //     that the matrix LU is destroyed.                                       //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *LU  On input, the pointer to the first element of the matrix   //
+//     float *LU  On input, the pointer to the first element of the matrix   //
 //                 whose elements form the lower and upper triangular matrix  //
 //                 factors of A.  On output, the matrix LU is replaced by the //
 //                 inverse of the matrix A equal to the product of L and U.   //
@@ -631,7 +631,7 @@ int Choleski_LU_Solve(double* LU, double B[], double x[], int n)
 //                                                                            //
 //  Example:                                                                  //
 //     #define N                                                              //
-//     double A[N][N], B[N], x[N];                                            //
+//     float A[N][N], B[N], x[N];                                            //
 //                                                                            //
 //     (your code to create matrix A and column vector B)                     //
 //     err = Choleski_LU_Decomposition(&A[0][0], N);                          //
@@ -644,11 +644,11 @@ int Choleski_LU_Solve(double* LU, double B[], double x[], int n)
 //     }                                                                      //
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-int Choleski_LU_Inverse(double* LU, int n)
+int Choleski_LU_Inverse(float* LU, int n)
 {
     int i, j, k;
-    double* p_i, * p_j, * p_k;
-    double sum;
+    float* p_i, * p_j, * p_k;
+    float sum;
 
     if (Lower_Triangular_Inverse(LU, n) < 0) return -1;
 
@@ -672,23 +672,23 @@ int Choleski_LU_Inverse(double* LU, int n)
 //    Multiply_Matrices                                                       //
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-//  void Multiply_Matrices(double *C, double *A, int nrows, int ncols,        //
-//                                                    double *B, int mcols)   //
+//  void Multiply_Matrices(float *C, float *A, int nrows, int ncols,        //
+//                                                    float *B, int mcols)   //
 //                                                                            //
 //  Description:                                                              //
 //     Post multiply the nrows x ncols matrix A by the ncols x mcols matrix   //
 //     B to form the nrows x mcols matrix C, i.e. C = A B.                    //
-//     The matrix C should be declared as double C[nrows][mcols] in the       //
+//     The matrix C should be declared as float C[nrows][mcols] in the       //
 //     calling routine.  The memory allocated to C should not include any     //
 //     memory allocated to A or B.                                            //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *C    Pointer to the first element of the matrix C.             //
-//     double *A    Pointer to the first element of the matrix A.             //
+//     float *C    Pointer to the first element of the matrix C.             //
+//     float *A    Pointer to the first element of the matrix A.             //
 //     int    nrows The number of rows of the matrices A and C.               //
 //     int    ncols The number of columns of the matrices A and the           //
 //                   number of rows of the matrix B.                          //
-//     double *B    Pointer to the first element of the matrix B.             //
+//     float *B    Pointer to the first element of the matrix B.             //
 //     int    mcols The number of columns of the matrices B and C.            //
 //                                                                            //
 //  Return Values:                                                            //
@@ -698,18 +698,18 @@ int Choleski_LU_Inverse(double* LU, int n)
 //     #define N                                                              //
 //     #define M                                                              //
 //     #define NB                                                             //
-//     double A[M][N],  B[N][NB], C[M][NB];                                   //
+//     float A[M][N],  B[N][NB], C[M][NB];                                   //
 //                                                                            //
 //     (your code to initialize the matrices A and B)                         //
 //                                                                            //
 //     Multiply_Matrices(&C[0][0], &A[0][0], M, N, &B[0][0], NB);             //
 //     printf("The matrix C is \n"); ...                                      //
 ////////////////////////////////////////////////////////////////////////////////
-void Multiply_Matrices(double* C, double* A, int nrows, int ncols,
-    double* B, int mcols)
+void Multiply_Matrices(float* C, float* A, int nrows, int ncols,
+    float* B, int mcols)
 {
-    double* pB;
-    double* p_B;
+    float* pB;
+    float* p_B;
     int i, j, k;
 
     for (i = 0; i < nrows; A += ncols, i++)
@@ -726,14 +726,14 @@ void Multiply_Matrices(double* C, double* A, int nrows, int ncols,
 //    Identity_Matrix                                                         //
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-//  void Identity_Matrix(double *A, int n)                                    //
+//  void Identity_Matrix(float *A, int n)                                    //
 //                                                                            //
 //  Description:                                                              //
 //     Set the square n x n matrix A equal to the identity matrix, i.e.       //
 //     A[i][j] = 0 if i != j and A[i][i] = 1.                                 //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *A    Pointer to the first element of the matrix A.             //
+//     float *A    Pointer to the first element of the matrix A.             //
 //     int    n     The number of rows and columns of the matrix A.           //
 //                                                                            //
 //  Return Values:                                                            //
@@ -741,12 +741,12 @@ void Multiply_Matrices(double* C, double* A, int nrows, int ncols,
 //                                                                            //
 //  Example:                                                                  //
 //     #define N                                                              //
-//     double A[N][N];                                                        //
+//     float A[N][N];                                                        //
 //                                                                            //
 //     Identity_Matrix(&A[0][0], N);                                          //
 //     printf("The matrix A is \n"); ...                                      //
 ////////////////////////////////////////////////////////////////////////////////
-void Identity_Matrix(double* A, int n)
+void Identity_Matrix(float* A, int n)
 {
     int i, j;
 
@@ -764,7 +764,7 @@ void Identity_Matrix(double* A, int n)
 ////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////
-//  int Hessenberg_Form_Elementary(double *A, double *S, int n)               //
+//  int Hessenberg_Form_Elementary(float *A, float *S, int n)               //
 //                                                                            //
 //  Description:                                                              //
 //     This program transforms the square matrix A to a similar matrix in     //
@@ -785,10 +785,10 @@ void Identity_Matrix(double* A, int n)
 //     x * row j+1 from row i and add x * column i to column j+1.             //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *A     On input a pointer to the first element of the matrix    //
+//     float *A     On input a pointer to the first element of the matrix    //
 //                   A[n][n].  The matrix A is replaced with the matrix H,    //
 //                   a matrix in Hessenberg form similar to A.                //
-//     double *S     On output the transform such that A S = S H.             //
+//     float *S     On output the transform such that A S = S H.             //
 //                   The matrix S should be dimensioned at least n x n in the //
 //                   calling routine.                                         //
 //     int    n      The number of rows or columns of the matrix A.           //
@@ -799,23 +799,23 @@ void Identity_Matrix(double* A, int n)
 //                                                                            //
 //  Example:                                                                  //
 //     #define N                                                              //
-//     double A[N][N], S[N][N];                                               //
+//     float A[N][N], S[N][N];                                               //
 //                                                                            //
 //     (your code to create the matrix A)                                     //
-//     if (Hessenberg_Form_Elementary(&A[0][0], (double*)S, N ) < 0) {        //
+//     if (Hessenberg_Form_Elementary(&A[0][0], (float*)S, N ) < 0) {        //
 //        printf("Not enough memory\n"); exit(0);                             //
 //     }                                                                      //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-int Hessenberg_Form_Elementary(double* A, double* S, int n)
+int Hessenberg_Form_Elementary(float* A, float* S, int n)
 {
     int i, j, col, row;
     int* perm;
-    double* p_row, * pS_row;
-    double max;
-    double s;
-    double* pA, * pB, * pC, * pS;
+    float* p_row, * pS_row;
+    float max;
+    float s;
+    float* pA, * pB, * pC, * pS;
 
     // n x n matrices for which n <= 2 are already in Hessenberg form
 
@@ -875,7 +875,7 @@ int Hessenberg_Form_Elementary(double* A, double* S, int n)
 
 
 ////////////////////////////////////////////////////////////////////////////////
-//  void Hessenberg_Elementary_Transform(double* H, double *S,         //
+//  void Hessenberg_Elementary_Transform(float* H, float *S,         //
 //                                                        int perm[], int n)  //
 //                                                                            //
 //  Description:                                                              //
@@ -887,11 +887,11 @@ int Hessenberg_Form_Elementary(double* A, double* S, int n)
 //     that A S = S H.                                                        //
 //                                                                            //
 //  Arguments:                                                                //
-//     double* H     On input a matrix in Hessenberg form with transformation //
+//     float* H     On input a matrix in Hessenberg form with transformation //
 //                   elements stored below the subdiagonal part.              //
 //                   On output the matrix in Hessenberg form with elements    //
 //                   below the subdiagonal zeroed out.                        //
-//     double* S     On output, the transformations matrix such that          //
+//     float* S     On output, the transformations matrix such that          //
 //                   A S = S H.                                               //
 //     int    perm[] Array of row/column interchanges.                        //
 //     int    n      The order of the matrices H and S.                       //
@@ -901,11 +901,11 @@ int Hessenberg_Form_Elementary(double* A, double* S, int n)
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-void Hessenberg_Elementary_Transform(double* H, double* S, int perm[],
+void Hessenberg_Elementary_Transform(float* H, float* S, int perm[],
     int n)
 {
     int i, j;
-    double* pS, * pH;
+    float* pS, * pH;
 
     Identity_Matrix(S, n);
     for (i = n - 2; i >= 1; i--) {
@@ -933,8 +933,8 @@ void Hessenberg_Elementary_Transform(double* H, double* S, int perm[],
 ////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////
-//  int QR_Hessenberg_Matrix( double *H, double *S, double eigen_real[],      //
-//                     double eigen_imag[], int n, int max_iteration_count)   //
+//  int QR_Hessenberg_Matrix( float *H, float *S, float eigen_real[],      //
+//                     float eigen_imag[], int n, int max_iteration_count)   //
 //                                                                            //
 //  Description:                                                              //
 //     This program calculates the eigenvalues and eigenvectors of a matrix   //
@@ -945,10 +945,10 @@ void Hessenberg_Elementary_Transform(double* H, double* S, int perm[],
 //     by LR and QR Triangularizations by Peters and Wilkinson.               //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *H                                                              //
+//     float *H                                                              //
 //            Pointer to the first element of the real n x n matrix H in upper//
 //            Hessenberg form.                                                //
-//     double *S                                                              //
+//     float *S                                                              //
 //            If H is the primary data matrix, the matrix S should be set     //
 //            to the identity n x n identity matrix on input.  If H is        //
 //            derived from an n x n matrix A, then S should be the            //
@@ -965,10 +965,10 @@ void Hessenberg_Elementary_Transform(double* H, double* S, int perm[],
 //            the eigenvectors of H as described, if S was a transformation   //
 //            matrix so that AS = SH, then the columns of S are the           //
 //            eigenvectors of A as described.                                 //
-//     double eigen_real[]                                                    //
+//     float eigen_real[]                                                    //
 //            Upon return, eigen_real[i] will contain the real part of the    //
 //            i-th eigenvalue.                                                //
-//     double eigen_imag[]                                                    //
+//     float eigen_imag[]                                                    //
 //            Upon return, eigen_ima[i] will contain the imaginary part of    //
 //            the i-th eigenvalue.                                            //
 //     int    n                                                               //
@@ -985,24 +985,24 @@ void Hessenberg_Elementary_Transform(double* H, double* S, int perm[],
 //  Example:                                                                  //
 //     #define N                                                              //
 //     #define MAX_ITERATION_COUNT                                            //
-//     double H[N][N], S[N][N], eigen_real[N], eigen_imag[N];                 //
+//     float H[N][N], S[N][N], eigen_real[N], eigen_imag[N];                 //
 //     int k;                                                                 //
 //                                                                            //
 //     (code to initialize H[N][N] and S[N][N])                               //
-//     k = QR_Hessenberg_Matrix( (double*)H, (double*)S, eigen_real,          //
+//     k = QR_Hessenberg_Matrix( (float*)H, (float*)S, eigen_real,          //
 //                                      eigen_imag, N, MAX_ITERATION_COUNT);  //
 //     if (k < 0) {printf("Failed"); exit(1);}                                //
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-int QR_Hessenberg_Matrix(double* H, double* S, double eigen_real[],
-    double eigen_imag[], int n, int max_iteration_count)
+int QR_Hessenberg_Matrix(float* H, float* S, float eigen_real[],
+    float eigen_imag[], int n, int max_iteration_count)
 {
     int i;
     int row;
     int iteration;
     int found_eigenvalue;
-    double shift = 0.0;
-    double* pH;
+    float shift = 0.0;
+    float* pH;
 
     for (row = n - 1; row >= 0; row--) {
         found_eigenvalue = 0;
@@ -1018,7 +1018,7 @@ int QR_Hessenberg_Matrix(double* H, double* S, double eigen_real[],
             // that row element is an eigenvalue.  If the subdiagonal
             // element on row "row-1" is small, then the eigenvalues
             // of the 2x2 diagonal block consisting rows "row-1" and
-            // "row" are eigenvalues.  Otherwise perform a double QR
+            // "row" are eigenvalues.  Otherwise perform a float QR
             // iteration.
 
             switch (row - i) {
@@ -1046,25 +1046,25 @@ int QR_Hessenberg_Matrix(double* H, double* S, double eigen_real[],
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-//  void One_Real_Eigenvalue( double Hrow[], double eigen_real[],      //
-//                                double eigen_imag[], int row, double shift) //
+//  void One_Real_Eigenvalue( float Hrow[], float eigen_real[],      //
+//                                float eigen_imag[], int row, float shift) //
 //                                                                            //
 //  Arguments:                                                                //
-//     double Hrow[]                                                          //
+//     float Hrow[]                                                          //
 //            Pointer to the row "row" of the matrix in Hessenberg form.      //
-//     double eigen_real[]                                                    //
+//     float eigen_real[]                                                    //
 //            Array of the real parts of the eigenvalues.                     //
-//     double eigen_imag[]                                                    //
+//     float eigen_imag[]                                                    //
 //            Array of the imaginary parts of the eigenvalues.                //
 //     int    row                                                             //
 //            The row to which the pointer Hrow[] points of the matrix H.     //
-//     double shift                                                           //
+//     float shift                                                           //
 //            The cumulative exceptional shift of the diagonal elements of    //
 //            the matrix H.                                                   //
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-void One_Real_Eigenvalue(double Hrow[], double eigen_real[],
-    double eigen_imag[], int row, double shift)
+void One_Real_Eigenvalue(float Hrow[], float eigen_real[],
+    float eigen_imag[], int row, float shift)
 {
     Hrow[row] += shift;
     eigen_real[row] = Hrow[row];
@@ -1073,8 +1073,8 @@ void One_Real_Eigenvalue(double Hrow[], double eigen_real[],
 
 
 ////////////////////////////////////////////////////////////////////////////////
-//  void Two_Eigenvalues( double *H, double *S, double eigen_real[],   //
-//                         double eigen_imag[], int n, int row, double shift) //
+//  void Two_Eigenvalues( float *H, float *S, float eigen_real[],   //
+//                         float eigen_imag[], int n, int row, float shift) //
 //                                                                            //
 //  Description:                                                              //
 //     Given the 2x2 matrix A = (a[i][j]), the characteristic equation is:    //
@@ -1095,30 +1095,30 @@ void One_Real_Eigenvalue(double Hrow[], double eigen_real[],
 //      If q < 0.0, then both roots form a complex conjugate pair.            //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *H                                                              //
+//     float *H                                                              //
 //            Pointer to the first element of the matrix in Hessenberg form.  //
-//     double *S                                                              //
+//     float *S                                                              //
 //            Pointer to the first element of the transformation matrix.      //
-//     double eigen_real[]                                                    //
+//     float eigen_real[]                                                    //
 //            Array of the real parts of the eigenvalues.                     //
-//     double eigen_imag[]                                                    //
+//     float eigen_imag[]                                                    //
 //            Array of the imaginary parts of the eigenvalues.                //
 //     int    n                                                               //
 //            The dimensions of the matrix H and S.                           //
 //     int    row                                                             //
 //            The upper most row of the block diagonal 2 x 2 submatrix of H.  //
-//     double shift                                                           //
+//     float shift                                                           //
 //            The cumulative exceptional shift of the diagonal elements of    //
 //            the matrix H.                                                   //
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-void Two_Eigenvalues(double* H, double* S, double eigen_real[],
-    double eigen_imag[], int n, int row, double shift)
+void Two_Eigenvalues(float* H, float* S, float eigen_real[],
+    float eigen_imag[], int n, int row, float shift)
 {
-    double p, q, x, discriminant, r;
-    double cos, sin;
-    double* Hrow = H + n * row;
-    double* Hnextrow = Hrow + n;
+    float p, q, x, discriminant, r;
+    float cos, sin;
+    float* Hrow = H + n * row;
+    float* Hnextrow = Hrow + n;
     int nextrow = row + 1;
 
     p = 0.5 * (Hrow[row] - Hnextrow[nextrow]);
@@ -1149,7 +1149,7 @@ void Two_Eigenvalues(double* H, double* S, double eigen_real[],
 
 
 ////////////////////////////////////////////////////////////////////////////////
-//  void Update_Row(double *Hrow, double cos, double sin, int n,       //
+//  void Update_Row(float *Hrow, float cos, float sin, int n,       //
 //                                                                   int row) //
 //                                                                            //
 //  Description:                                                              //
@@ -1161,11 +1161,11 @@ void Two_Eigenvalues(double* H, double* S, double eigen_real[],
 //     2x2 rotation matrix.                                                   //
 //                                                                            //
 //  Arguments:                                                                //
-//     double Hrow[]                                                          //
+//     float Hrow[]                                                          //
 //            Pointer to the row "row" of the matrix in Hessenberg form.      //
-//     double cos                                                             //
+//     float cos                                                             //
 //            Cosine of the rotation angle.                                   //
-//     double sin                                                             //
+//     float sin                                                             //
 //            Sine of the rotation angle.                                     //
 //     int    n                                                               //
 //            The dimension of the matrix H.                                  //
@@ -1174,10 +1174,10 @@ void Two_Eigenvalues(double* H, double* S, double eigen_real[],
 //            in Hessenberg form.                                             //
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-void Update_Row(double* Hrow, double cos, double sin, int n, int row)
+void Update_Row(float* Hrow, float cos, float sin, int n, int row)
 {
-    double x;
-    double* Hnextrow = Hrow + n;
+    float x;
+    float* Hnextrow = Hrow + n;
     int i;
 
     for (i = row; i < n; i++) {
@@ -1189,7 +1189,7 @@ void Update_Row(double* Hrow, double cos, double sin, int n, int row)
 
 
 ////////////////////////////////////////////////////////////////////////////////
-//  void Update_Column(double* H, double cos, double sin, int n,       //
+//  void Update_Column(float* H, float cos, float sin, int n,       //
 //                                                                   int col) //
 //                                                                            //
 //  Description:                                                              //
@@ -1201,11 +1201,11 @@ void Update_Row(double* Hrow, double cos, double sin, int n, int row)
 //     2x2 rotation matrix.                                                   //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *H                                                              //
+//     float *H                                                              //
 //            Pointer to the matrix in Hessenberg form.                       //
-//     double cos                                                             //
+//     float cos                                                             //
 //            Cosine of the rotation angle.                                   //
-//     double sin                                                             //
+//     float sin                                                             //
 //            Sine of the rotation angle.                                     //
 //     int    n                                                               //
 //            The dimension of the matrix H.                                  //
@@ -1213,9 +1213,9 @@ void Update_Row(double* Hrow, double cos, double sin, int n, int row)
 //            The left-most column of the matrix H to update.                 //
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-void Update_Column(double* H, double cos, double sin, int n, int col)
+void Update_Column(float* H, float cos, float sin, int n, int col)
 {
-    double x;
+    float x;
     int i;
     int next_col = col + 1;
 
@@ -1228,7 +1228,7 @@ void Update_Column(double* H, double cos, double sin, int n, int col)
 
 
 ////////////////////////////////////////////////////////////////////////////////
-//  void Update_Transformation(double *S, double cos, double sin,      //
+//  void Update_Transformation(float *S, float cos, float sin,      //
 //                                                             int n, int k)  //
 //                                                                            //
 //  Description:                                                              //
@@ -1240,11 +1240,11 @@ void Update_Column(double* H, double cos, double sin, int n, int col)
 //     2x2 rotation matrix.                                                   //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *S                                                              //
+//     float *S                                                              //
 //            Pointer to the row "row" of the matrix in Hessenberg form.      //
-//     double cos                                                             //
+//     float cos                                                             //
 //            Pointer to the first element of the matrix in Hessenberg form.  //
-//     double sin                                                             //
+//     float sin                                                             //
 //            Pointer to the first element of the transformation matrix.      //
 //     int    n                                                               //
 //            The dimensions of the matrix H and S.                           //
@@ -1252,10 +1252,10 @@ void Update_Column(double* H, double cos, double sin, int n, int col)
 //            The row to which the pointer Hrow[] points of the matrix H.     //
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-void Update_Transformation(double* S, double cos, double sin,
+void Update_Transformation(float* S, float cos, float sin,
     int n, int k)
 {
-    double x;
+    float x;
     int i;
     int k1 = k + 1;
 
@@ -1268,8 +1268,8 @@ void Update_Transformation(double* S, double cos, double sin,
 
 
 ////////////////////////////////////////////////////////////////////////////////
-//  void Double_QR_Iteration(double *H, double *S, int min_row,        //
-//                         int max_row, int n, double* shift, int iteration)  //
+//  void Double_QR_Iteration(float *H, float *S, int min_row,        //
+//                         int max_row, int n, float* shift, int iteration)  //
 //                                                                            //
 //  Description:                                                              //
 //     Calculate the trace and determinant of the 2x2 matrix:                 //
@@ -1281,9 +1281,9 @@ void Update_Transformation(double* S, double cos, double sin,
 //     det = 4/9 trace^2.                                                     //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *H                                                              //
+//     float *H                                                              //
 //            Pointer to the matrix H in Hessenberg form.                     //
-//     double *S                                                              //
+//     float *S                                                              //
 //            Pointer to the transformation matrix S.                         //
 //     int    min_row                                                         //
 //            The top-most row in which the off-diagonal element of H is      //
@@ -1293,18 +1293,18 @@ void Update_Transformation(double* S, double cos, double sin,
 //            estimate the two eigenvalues for the two implicit shifts.       //
 //     int    n                                                               //
 //            The dimensions of the matrix H and S.                           //
-//     double *shift                                                          //
+//     float *shift                                                          //
 //            The cumulative exceptional shift of the diagonal elements of    //
 //            the matrix H.                                                   //
 //     int    iteration                                                       //
 //            Current iteration count.                                        //
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-void Double_QR_Iteration(double* H, double* S, int min_row, int max_row,
-    int n, double* shift, int iteration)
+void Double_QR_Iteration(float* H, float* S, int min_row, int max_row,
+    int n, float* shift, int iteration)
 {
     int k;
-    double trace, det;
+    float trace, det;
 
     Product_and_Sum_of_Shifts(H, n, max_row, shift, &trace, &det, iteration);
     k = Two_Consecutive_Small_Subdiagonal(H, min_row, max_row, n, trace, det);
@@ -1313,8 +1313,8 @@ void Double_QR_Iteration(double* H, double* S, int min_row, int max_row,
 
 
 ////////////////////////////////////////////////////////////////////////////////
-//  void Product_and_Sum_of_Shifts(double *H, int n, int max_row,      //
-//                 double* shift, double *trace, double *det, int iteration)  //
+//  void Product_and_Sum_of_Shifts(float *H, int n, int max_row,      //
+//                 float* shift, float *trace, float *det, int iteration)  //
 //                                                                            //
 //  Description:                                                              //
 //     Calculate the trace and determinant of the 2x2 matrix:                 //
@@ -1326,21 +1326,21 @@ void Double_QR_Iteration(double* H, double* S, int min_row, int max_row,
 //     det = 4/9 trace^2.                                                     //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *H                                                              //
+//     float *H                                                              //
 //            Pointer to the matrix H in Hessenberg form.                     //
 //     int    n                                                               //
 //            The dimension of the matrix H.                                  //
 //     int    max_row                                                         //
 //            The maximum row of the block 2 x 2 diagonal matrix used to      //
 //            estimate the two eigenvalues for the two implicit shifts.       //
-//     double *shift                                                          //
+//     float *shift                                                          //
 //            The cumulative exceptional shift of the diagonal elements of    //
 //            the matrix H.  Modified if an exceptional shift occurs.         //
-//     double *trace                                                          //
+//     float *trace                                                          //
 //            Returns the trace of the 2 x 2 block diagonal matrix starting   //
 //            at the row/column max_row-1.  For an exceptional shift, the     //
 //            trace is set as described above.                                //
-//     double *det                                                            //
+//     float *det                                                            //
 //            Returns the determinant of the 2 x 2 block diagonal matrix      //
 //            starting at the row/column max_row-1.  For an exceptional shift,//
 //            the determinant is set as described above.                      //
@@ -1348,11 +1348,11 @@ void Double_QR_Iteration(double* H, double* S, int min_row, int max_row,
 //            Current iteration count.                                        //
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-void Product_and_Sum_of_Shifts(double* H, int n, int max_row,
-    double* shift, double* trace, double* det, int iteration)
+void Product_and_Sum_of_Shifts(float* H, int n, int max_row,
+    float* shift, float* trace, float* det, int iteration)
 {
-    double* pH = H + max_row * n;
-    double* p_aux;
+    float* pH = H + max_row * n;
+    float* p_aux;
     int i;
     int min_col = max_row - 1;
 
@@ -1374,16 +1374,16 @@ void Product_and_Sum_of_Shifts(double* H, int n, int max_row,
 
 
 ////////////////////////////////////////////////////////////////////////////////
-//  int Two_Consecutive_Small_Subdiagonal(double* H, int min_row,      //
-//                              int max_row, int n, double trace, double det) //
+//  int Two_Consecutive_Small_Subdiagonal(float* H, int min_row,      //
+//                              int max_row, int n, float trace, float det) //
 //                                                                            //
 //  Description:                                                              //
-//     To reduce the amount of computation in Francis' double QR step search  //
+//     To reduce the amount of computation in Francis' float QR step search  //
 //     for two consecutive small subdiagonal elements from row nn to row m,   //
 //     where m < nn.                                                          //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *H                                                              //
+//     float *H                                                              //
 //            Pointer to the first element of the matrix in Hessenberg form.  //
 //     int    min_row                                                         //
 //            The row in which to end the search (search is from upwards).    //
@@ -1391,20 +1391,20 @@ void Product_and_Sum_of_Shifts(double* H, int n, int max_row,
 //            The row in which to begin the search.                           //
 //     int    n                                                               //
 //            The dimension of H.                                             //
-//     double trace                                                           //
+//     float trace                                                           //
 //            The trace of the lower 2 x 2 block diagonal matrix.             //
-//     double det                                                             //
+//     float det                                                             //
 //            The determinant of the lower 2 x 2 block diagonal matrix.       //
 //                                                                            //
 //  Return Value:                                                             //
 //     Row with negligible subdiagonal element or min_row if none found.      //
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-int Two_Consecutive_Small_Subdiagonal(double* H, int min_row,
-    int max_row, int n, double trace, double det)
+int Two_Consecutive_Small_Subdiagonal(float* H, int min_row,
+    int max_row, int n, float trace, float det)
 {
-    double x, y, z, s;
-    double* pH;
+    float x, y, z, s;
+    float* pH;
     int i, k;
 
     for (k = max_row - 2, pH = H + k * n; k >= min_row; pH -= n, k--) {
@@ -1427,15 +1427,15 @@ int Two_Consecutive_Small_Subdiagonal(double* H, int min_row,
 
 
 ////////////////////////////////////////////////////////////////////////////////
-//  void Double_QR_Step(double *H, int min_row, int max_row,           //
-//                                            int min_col, double *S, int n)  //
+//  void Double_QR_Step(float *H, int min_row, int max_row,           //
+//                                            int min_col, float *S, int n)  //
 //                                                                            //
 //  Description:                                                              //
-//     Perform Francis' double QR step from rows 'min_row' to 'max_row'       //
+//     Perform Francis' float QR step from rows 'min_row' to 'max_row'       //
 //     and columns 'min_col' to 'max_row'.                                    //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *H                                                              //
+//     float *H                                                              //
 //            Pointer to the first element of the matrix in Hessenberg form.  //
 //     int    min_row                                                         //
 //            The row in which to begin.                                      //
@@ -1443,24 +1443,24 @@ int Two_Consecutive_Small_Subdiagonal(double* H, int min_row,
 //            The row in which to end.                                        //
 //     int    min_col                                                         //
 //            The column in which to begin.                                   //
-//     double trace                                                           //
+//     float trace                                                           //
 //            The trace of the lower 2 x 2 block diagonal matrix.             //
-//     double det                                                             //
+//     float det                                                             //
 //            The determinant of the lower 2 x 2 block diagonal matrix.       //
-//     double *S                                                              //
+//     float *S                                                              //
 //            Pointer to the first element of the transformation matrix.      //
 //     int    n                                                               //
 //            The dimensions of H and S.                                      //
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-void Double_QR_Step(double* H, int min_row, int max_row, int min_col,
-    double trace, double det, double* S, int n)
+void Double_QR_Step(float* H, int min_row, int max_row, int min_col,
+    float trace, float det, float* S, int n)
 {
-    double s, x, y, z;
-    double a, b, c;
-    double* pH;
-    double* tH;
-    double* pS;
+    float s, x, y, z;
+    float a, b, c;
+    float* pH;
+    float* tH;
+    float* pS;
     int i, j, k;
     int last_test_row_col = max_row - 1;
 
@@ -1535,27 +1535,27 @@ void Double_QR_Step(double* H, int min_row, int max_row, int min_col,
 
 
 ////////////////////////////////////////////////////////////////////////////////
-//  void BackSubstitution(double *H, double eigen_real[],              //
-//                                               double eigen_imag[], int n)  //
+//  void BackSubstitution(float *H, float eigen_real[],              //
+//                                               float eigen_imag[], int n)  //
 //                                                                            //
 //  Description:                                                              //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *H                                                              //
+//     float *H                                                              //
 //            Pointer to the first element of the matrix in Hessenberg form.  //
-//     double eigen_real[]                                                    //
+//     float eigen_real[]                                                    //
 //            The real part of an eigenvalue.                                 //
-//     double eigen_imag[]                                                    //
+//     float eigen_imag[]                                                    //
 //            The imaginary part of an eigenvalue.                            //
 //     int    n                                                               //
 //            The dimension of H, eigen_real, and eigen_imag.                 //
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-void BackSubstitution(double* H, double eigen_real[],
-    double eigen_imag[], int n)
+void BackSubstitution(float* H, float eigen_real[],
+    float eigen_imag[], int n)
 {
-    double zero_tolerance;
-    double* pH;
+    float zero_tolerance;
+    float* pH;
     int i, j, row;
 
     // Calculate the zero tolerance
@@ -1580,33 +1580,33 @@ void BackSubstitution(double* H, double eigen_real[],
 
 
 ////////////////////////////////////////////////////////////////////////////////
-//  void BackSubstitute_Real_Vector(double *H, double eigen_real[],    //
-//             double eigen_imag[], int row,  double zero_tolerance, int n)   //
+//  void BackSubstitute_Real_Vector(float *H, float eigen_real[],    //
+//             float eigen_imag[], int row,  float zero_tolerance, int n)   //
 //                                                                            //
 //  Description:                                                              //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *H                                                              //
+//     float *H                                                              //
 //            Pointer to the first element of the matrix in Hessenberg form.  //
-//     double eigen_real[]                                                    //
+//     float eigen_real[]                                                    //
 //            The real part of an eigenvalue.                                 //
-//     double eigen_imag[]                                                    //
+//     float eigen_imag[]                                                    //
 //            The imaginary part of an eigenvalue.                            //
 //     int    row                                                             //
-//     double zero_tolerance                                                  //
+//     float zero_tolerance                                                  //
 //            Zero substitute. To avoid dividing by zero.                     //
 //     int    n                                                               //
 //            The dimension of H, eigen_real, and eigen_imag.                 //
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-void BackSubstitute_Real_Vector(double* H, double eigen_real[],
-    double eigen_imag[], int row, double zero_tolerance, int n)
+void BackSubstitute_Real_Vector(float* H, float eigen_real[],
+    float eigen_imag[], int row, float zero_tolerance, int n)
 {
-    double* pH;
-    double* pV;
-    double x;
-    double u[4] = {0};
-    double v[2] = {0};
+    float* pH;
+    float* pV;
+    float x;
+    float u[4] = {0};
+    float v[2] = {0};
     int i, j, k;
 
     k = row;
@@ -1645,34 +1645,34 @@ void BackSubstitute_Real_Vector(double* H, double eigen_real[],
 
 
 ////////////////////////////////////////////////////////////////////////////////
-//  void BackSubstitute_Complex_Vector(double *H, double eigen_real[], //
-//              double eigen_imag[], int row,  double zero_tolerance, int n)  //
+//  void BackSubstitute_Complex_Vector(float *H, float eigen_real[], //
+//              float eigen_imag[], int row,  float zero_tolerance, int n)  //
 //                                                                            //
 //  Description:                                                              //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *H                                                              //
+//     float *H                                                              //
 //            Pointer to the first element of the matrix in Hessenberg form.  //
-//     double eigen_real[]                                                    //
+//     float eigen_real[]                                                    //
 //            The real part of an eigenvalue.                                 //
-//     double eigen_imag[]                                                    //
+//     float eigen_imag[]                                                    //
 //            The imaginary part of an eigenvalue.                            //
 //     int    row                                                             //
-//     double zero_tolerance                                                  //
+//     float zero_tolerance                                                  //
 //            Zero substitute. To avoid dividing by zero.                     //
 //     int    n                                                               //
 //            The dimension of H, eigen_real, and eigen_imag.                 //
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-void BackSubstitute_Complex_Vector(double* H, double eigen_real[],
-    double eigen_imag[], int row, double zero_tolerance, int n)
+void BackSubstitute_Complex_Vector(float* H, float eigen_real[],
+    float eigen_imag[], int row, float zero_tolerance, int n)
 {
-    double* pH;
-    double* pV;
-    double x, y;
-    double u[4] = {0};
-    double v[2] = {0};
-    double w[2] = {0};
+    float* pH;
+    float* pV;
+    float x, y;
+    float u[4] = {0};
+    float v[2] = {0};
+    float w[2] = {0};
     int i, j, k;
 
     k = row - 1;
@@ -1735,31 +1735,31 @@ void BackSubstitute_Complex_Vector(double* H, double eigen_real[],
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-//  void Calculate_Eigenvectors(double *H, double *S,                  //
-//                          double eigen_real[], double eigen_imag[], int n)  //
+//  void Calculate_Eigenvectors(float *H, float *S,                  //
+//                          float eigen_real[], float eigen_imag[], int n)  //
 //                                                                            //
 //  Description:                                                              //
 //     Multiply by transformation matrix.                                     //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *H                                                              //
+//     float *H                                                              //
 //            Pointer to the first element of the matrix in Hessenberg form.  //
-//     double *S                                                              //
+//     float *S                                                              //
 //            Pointer to the first element of the transformation matrix.      //
-//     double eigen_real[]                                                    //
+//     float eigen_real[]                                                    //
 //            The real part of an eigenvalue.                                 //
-//     double eigen_imag[]                                                    //
+//     float eigen_imag[]                                                    //
 //            The imaginary part of an eigenvalue.                            //
 //     int    n                                                               //
 //            The dimension of H, S, eigen_real, and eigen_imag.              //
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-void Calculate_Eigenvectors(double* H, double* S, double eigen_real[],
-    double eigen_imag[], int n)
+void Calculate_Eigenvectors(float* H, float* S, float eigen_real[],
+    float eigen_imag[], int n)
 {
-    double* pH;
-    double* pS;
-    double x, y;
+    float* pH;
+    float* pS;
+    float x, y;
     int i, j, k;
 
     for (k = n - 1; k >= 0; k--) {
@@ -1788,8 +1788,8 @@ void Calculate_Eigenvectors(double* H, double* S, double eigen_real[],
 
 
 ////////////////////////////////////////////////////////////////////////////////
-//  void Complex_Division(double x, double y, double u, double v,      //
-//                                                    double* a, double* b)   //
+//  void Complex_Division(float x, float y, float u, float v,      //
+//                                                    float* a, float* b)   //
 //                                                                            //
 //  Description:                                                              //
 //    a + i b = (x + iy) / (u + iv)                                           //
@@ -1797,24 +1797,24 @@ void Calculate_Eigenvectors(double* H, double* S, double eigen_real[],
 //    where r^2 = u^2 + v^2.                                                  //
 //                                                                            //
 //  Arguments:                                                                //
-//     double x                                                               //
+//     float x                                                               //
 //            Real part of the numerator.                                     //
-//     double y                                                               //
+//     float y                                                               //
 //            Imaginary part of the numerator.                                //
-//     double u                                                               //
+//     float u                                                               //
 //            Real part of the denominator.                                   //
-//     double v                                                               //
+//     float v                                                               //
 //            Imaginary part of the denominator.                              //
-//     double *a                                                              //
+//     float *a                                                              //
 //            Real part of the quotient.                                      //
-//     double *b                                                              //
+//     float *b                                                              //
 //            Imaginary part of the quotient.                                 //
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-void Complex_Division(double x, double y, double u, double v,
-    double* a, double* b)
+void Complex_Division(float x, float y, float u, float v,
+    float* a, float* b)
 {
-    double q = u * u + v * v;
+    float q = u * u + v * v;
 
     *a = (x * u + y * v) / q;
     *b = (y * u - x * v) / q;
@@ -1825,13 +1825,13 @@ void Complex_Division(double x, double y, double u, double v,
 //    Transpose_Square_Matrix                                                 //
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-//  void Transpose_Square_Matrix( double *A, int n )                          //
+//  void Transpose_Square_Matrix( float *A, int n )                          //
 //                                                                            //
 //  Description:                                                              //
 //     Take the transpose of A and store in place.                            //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *A    Pointer to the first element of the matrix A.             //
+//     float *A    Pointer to the first element of the matrix A.             //
 //     int    n     The number of rows and columns of the matrix A.           //
 //                                                                            //
 //  Return Values:                                                            //
@@ -1839,17 +1839,17 @@ void Complex_Division(double x, double y, double u, double v,
 //                                                                            //
 //  Example:                                                                  //
 //     #define N                                                              //
-//     double A[N][N];                                                        //
+//     float A[N][N];                                                        //
 //                                                                            //
 //     (your code to initialize the matrix A)                                 //
 //                                                                            //
 //     Transpose_Square_Matrix( &A[0][0], N);                                 //
 //     printf("The transpose of A is \n"); ...                                //
 ////////////////////////////////////////////////////////////////////////////////
-void Transpose_Square_Matrix(double* A, int n)
+void Transpose_Square_Matrix(float* A, int n)
 {
-    double* pA, * pAt;
-    double temp;
+    float* pA, * pAt;
+    float temp;
     int i, j;
 
     for (i = 0; i < n; A += n + 1, i++) {
@@ -1869,7 +1869,7 @@ void Transpose_Square_Matrix(double* A, int n)
 //    Lower_Triangular_Inverse                                                //
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-//  int Lower_Triangular_Solve(double *L, double *B, double x[], int n)       //
+//  int Lower_Triangular_Solve(float *L, float *B, float x[], int n)       //
 //                                                                            //
 //  Description:                                                              //
 //     This routine solves the linear equation Lx = B, where L is an n x n    //
@@ -1881,10 +1881,10 @@ void Transpose_Square_Matrix(double* A, int n)
 //     for i = 1, ..., n-1.                                                   //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *L   Pointer to the first element of the lower triangular       //
+//     float *L   Pointer to the first element of the lower triangular       //
 //                 matrix.                                                    //
-//     double *B   Pointer to the column vector, (n x 1) matrix, B.           //
-//     double *x   Pointer to the column vector, (n x 1) matrix, x.           //
+//     float *B   Pointer to the column vector, (n x 1) matrix, B.           //
+//     float *x   Pointer to the column vector, (n x 1) matrix, x.           //
 //     int     n   The number of rows or columns of the matrix L.             //
 //                                                                            //
 //  Return Values:                                                            //
@@ -1893,7 +1893,7 @@ void Transpose_Square_Matrix(double* A, int n)
 //                                                                            //
 //  Example:                                                                  //
 //     #define N                                                              //
-//     double A[N][N], B[N], x[N];                                            //
+//     float A[N][N], B[N], x[N];                                            //
 //                                                                            //
 //     (your code to create matrix A and column vector B)                     //
 //     err = Lower_Triangular_Solve(&A[0][0], B, x, n);                       //
@@ -1902,7 +1902,7 @@ void Transpose_Square_Matrix(double* A, int n)
 //           ...                                                              //
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-int Lower_Triangular_Solve(double* L, double B[], double x[], int n)
+int Lower_Triangular_Solve(float* L, float B[], float x[], int n)
 {
     int i, k;
 
@@ -1921,7 +1921,7 @@ int Lower_Triangular_Solve(double* L, double B[], double x[], int n)
 
 
 ////////////////////////////////////////////////////////////////////////////////
-//  int Lower_Triangular_Inverse(double *L,  int n)                           //
+//  int Lower_Triangular_Inverse(float *L,  int n)                           //
 //                                                                            //
 //  Description:                                                              //
 //     This routine calculates the inverse of the lower triangular matrix L.  //
@@ -1934,7 +1934,7 @@ int Lower_Triangular_Solve(double* L, double B[], double x[], int n)
 //                                                                            //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *L   On input, the pointer to the first element of the matrix   //
+//     float *L   On input, the pointer to the first element of the matrix   //
 //                 whose lower triangular elements form the matrix which is   //
 //                 to be inverted. On output, the lower triangular part is    //
 //                 replaced by the inverse.  The superdiagonal elements are   //
@@ -1948,7 +1948,7 @@ int Lower_Triangular_Solve(double* L, double B[], double x[], int n)
 //                                                                            //
 //  Example:                                                                  //
 //     #define N                                                              //
-//     double L[N][N];                                                        //
+//     float L[N][N];                                                        //
 //                                                                            //
 //     (your code to create the matrix L)                                     //
 //     err = Lower_Triangular_Inverse(&L[0][0], N);                           //
@@ -1959,11 +1959,11 @@ int Lower_Triangular_Solve(double* L, double B[], double x[], int n)
 //     }                                                                      //
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-int Lower_Triangular_Inverse(double* L, int n)
+int Lower_Triangular_Inverse(float* L, int n)
 {
     int i, j, k;
-    double* p_i, * p_j, * p_k;
-    double sum;
+    float* p_i, * p_j, * p_k;
+    float sum;
 
     //         Invert the diagonal elements of the lower triangular matrix L.
 
@@ -1992,7 +1992,7 @@ int Lower_Triangular_Inverse(double* L, int n)
 //    Upper_Triangular_Inverse                                                //
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-//  int Upper_Triangular_Solve(double *U, double *B, double x[], int n)       //
+//  int Upper_Triangular_Solve(float *U, float *B, float x[], int n)       //
 //                                                                            //
 //  Description:                                                              //
 //     This routine solves the linear equation Ux = B, where U is an n x n    //
@@ -2005,10 +2005,10 @@ int Lower_Triangular_Inverse(double* L, int n)
 //     for i = n-2, ..., 0.                                                   //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *U   Pointer to the first element of the upper triangular       //
+//     float *U   Pointer to the first element of the upper triangular       //
 //                 matrix.                                                    //
-//     double *B   Pointer to the column vector, (n x 1) matrix, B.           //
-//     double *x   Pointer to the column vector, (n x 1) matrix, x.           //
+//     float *B   Pointer to the column vector, (n x 1) matrix, B.           //
+//     float *x   Pointer to the column vector, (n x 1) matrix, x.           //
 //     int     n   The number of rows or columns of the matrix U.             //
 //                                                                            //
 //  Return Values:                                                            //
@@ -2017,7 +2017,7 @@ int Lower_Triangular_Inverse(double* L, int n)
 //                                                                            //
 //  Example:                                                                  //
 //     #define N                                                              //
-//     double A[N][N], B[N], x[N];                                            //
+//     float A[N][N], B[N], x[N];                                            //
 //                                                                            //
 //     (your code to create matrix A and column vector B)                     //
 //     err = Upper_Triangular_Solve(&A[0][0], B, x, n);                       //
@@ -2026,7 +2026,7 @@ int Lower_Triangular_Inverse(double* L, int n)
 //           ...                                                              //
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-int Upper_Triangular_Solve(double* U, double B[], double x[], int n)
+int Upper_Triangular_Solve(float* U, float B[], float x[], int n)
 {
     int i, k;
 
@@ -2045,7 +2045,7 @@ int Upper_Triangular_Solve(double* U, double B[], double x[], int n)
 
 
 ////////////////////////////////////////////////////////////////////////////////
-//  int Upper_Triangular_Inverse(double *U,  int n)                           //
+//  int Upper_Triangular_Inverse(float *U,  int n)                           //
 //                                                                            //
 //  Description:                                                              //
 //     This routine calculates the inverse of the upper triangular matrix U.  //
@@ -2058,7 +2058,7 @@ int Upper_Triangular_Solve(double* U, double B[], double x[], int n)
 //                                                                            //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *U   On input, the pointer to the first element of the matrix   //
+//     float *U   On input, the pointer to the first element of the matrix   //
 //                 whose upper triangular elements form the matrix which is   //
 //                 to be inverted. On output, the upper triangular part is    //
 //                 replaced by the inverse.  The subdiagonal elements are     //
@@ -2071,7 +2071,7 @@ int Upper_Triangular_Solve(double* U, double B[], double x[], int n)
 //                                                                            //
 //  Example:                                                                  //
 //     #define N                                                              //
-//     double U[N][N];                                                        //
+//     float U[N][N];                                                        //
 //                                                                            //
 //     (your code to create the matrix U)                                     //
 //     err = Upper_Triangular_Inverse(&U[0][0], N);                           //
@@ -2082,11 +2082,11 @@ int Upper_Triangular_Solve(double* U, double B[], double x[], int n)
 //     }                                                                      //
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-int Upper_Triangular_Inverse(double* U, int n)
+int Upper_Triangular_Inverse(float* U, int n)
 {
     int i, j, k;
-    double* p_i, * p_k;
-    double sum;
+    float* p_i, * p_k;
+    float sum;
 
     //         Invert the diagonal elements of the upper triangular matrix U.
 
@@ -2115,7 +2115,7 @@ int Upper_Triangular_Inverse(double* U, int n)
 //    Interchange_Columns                                                     //
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-//  void Interchange_Columns(double *A, int col1, int col2, int nrows,        //
+//  void Interchange_Columns(float *A, int col1, int col2, int nrows,        //
 //                                                                 int ncols) //
 //                                                                            //
 //  Description:                                                              //
@@ -2123,7 +2123,7 @@ int Upper_Triangular_Inverse(double* U, int n)
 //     matrix A.                                                              //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *A    Pointer to the first element of the matrix A.             //
+//     float *A    Pointer to the first element of the matrix A.             //
 //     int    col1  The column of A which is to be interchanged with col2.    //
 //     int    col2  The column of A which is to be interchanged with col1.    //
 //     int    nrows The number of rows matrix A.                              //
@@ -2135,7 +2135,7 @@ int Upper_Triangular_Inverse(double* U, int n)
 //  Example:                                                                  //
 //     #define N                                                              //
 //     #define M                                                              //
-//     double A[M][N];                                                        //
+//     float A[M][N];                                                        //
 //     int i,j;                                                               //
 //                                                                            //
 //     (your code to initialize the matrix A, the column number i and column  //
@@ -2145,11 +2145,11 @@ int Upper_Triangular_Inverse(double* U, int n)
 //        Interchange_Columns(&A[0][0], i, j, M, N);                          //
 //     printf("The matrix A is \n"); ...                                      //
 ////////////////////////////////////////////////////////////////////////////////
-void Interchange_Columns(double* A, int col1, int col2, int nrows, int ncols)
+void Interchange_Columns(float* A, int col1, int col2, int nrows, int ncols)
 {
     int i;
-    double* pA1, * pA2;
-    double temp;
+    float* pA1, * pA2;
+    float temp;
 
     pA1 = A + col1;
     pA2 = A + col2;
@@ -2165,13 +2165,13 @@ void Interchange_Columns(double* A, int col1, int col2, int nrows, int ncols)
 //    Interchange_Rows                                                        //
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-//  void Interchange_Rows(double *A, int row1, int row2, int ncols)           //
+//  void Interchange_Rows(float *A, int row1, int row2, int ncols)           //
 //                                                                            //
 //  Description:                                                              //
 //     Interchange the rows 'row1' and 'row2' of the  nrows x ncols matrix A. //
 //                                                                            //
 //  Arguments:                                                                //
-//     double *A    Pointer to the first element of the matrix A.             //
+//     float *A    Pointer to the first element of the matrix A.             //
 //     int    row1  The row of A which is to be interchanged with row row2.   //
 //     int    row2  The row of A which is to be interchanged with row row1.   //
 //     int    ncols The number of columns of the matrix A.                    //
@@ -2182,7 +2182,7 @@ void Interchange_Columns(double* A, int col1, int col2, int nrows, int ncols)
 //  Example:                                                                  //
 //     #define N                                                              //
 //     #define M                                                              //
-//     double A[M][N];                                                        //
+//     float A[M][N];                                                        //
 //     int i, j;                                                              //
 //                                                                            //
 //  (your code to initialize the matrix A, the row number i and row number j) //
@@ -2191,11 +2191,11 @@ void Interchange_Columns(double* A, int col1, int col2, int nrows, int ncols)
 //        Interchange_Rows(&A[0][0], i, j, N);                                //
 //     printf("The matrix A is \n"); ...                                      //
 ////////////////////////////////////////////////////////////////////////////////
-void Interchange_Rows(double* A, int row1, int row2, int ncols)
+void Interchange_Rows(float* A, int row1, int row2, int ncols)
 {
     int i;
-    double* pA1, * pA2;
-    double temp;
+    float* pA1, * pA2;
+    float temp;
 
     pA1 = A + row1 * ncols;
     pA2 = A + row2 * ncols;
