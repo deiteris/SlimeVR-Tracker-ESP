@@ -3339,7 +3339,7 @@ void MPU9250_Base::initilaizeMagnetometer() {
     // Set write to Configuration Register B
     I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_REG, 0x01);
     // Set measurement gain to +/- 1.3Ga
-    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_DO, 0x02);
+    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_DO, 0x20);
     // Enable I2C and write 1 byte
     I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_CTRL, 0x81);
     delay(50);
