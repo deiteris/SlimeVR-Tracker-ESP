@@ -245,6 +245,7 @@ void MPU9250Sensor::getMPUScaled()
     int16_t mx, my, mz;
     // with DMP, we just need mag data
     imu.getMagnetometer(&mx, &my, &mz);
+    Serial.printf("%d %d %d\n", mx, my, mz);
 #endif
 
     // Orientations of axes are set in accordance with the datasheet
