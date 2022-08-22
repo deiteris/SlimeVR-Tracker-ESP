@@ -148,7 +148,7 @@ void MPU9250Sensor::motionLoop() {
         int16_t rX, rY, rZ, aX, aY, aZ, mX, mY, mZ;
         imu.getRotation(&rX, &rY, &rZ);
         imu.getAcceleration(&aX, &aY, &aZ);
-        imu.getMagnetometer(&mX, &mY, &mZ);
+        imu.getMagnetometer(&mX, &mZ, &mY);
 
         Network::sendInspectionRawIMUData(sensorId, rX, rY, rZ, 255, aX, aY, aZ, 255, mX, mY, mZ, 255);
     }
@@ -244,7 +244,7 @@ void MPU9250Sensor::getMPUScaled()
 #else
     int16_t mx, my, mz;
     // with DMP, we just need mag data
-    imu.getMagnetometer(&mx, &my, &mz);
+    imu.getMagnetometer(&mx, &mz, &my);
 #endif
 
     // Orientations of axes are set in accordance with the datasheet
@@ -284,7 +284,7 @@ void MPU9250Sensor::startCalibration(int calibrationType) {
     for (int i = 0; i < calibrationSamples; i++) {
         ledManager.on();
         int16_t mx,my,mz;
-        imu.getMagnetometer(&mx, &my, &mz);
+        imu.getMagnetometer(&mx, &mz, &my);
         calibrationDataMag[i * 3 + 0] = my;
         calibrationDataMag[i * 3 + 1] = mx;
         calibrationDataMag[i * 3 + 2] = -mz;
