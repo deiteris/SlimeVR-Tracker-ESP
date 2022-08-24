@@ -59,7 +59,7 @@ private:
     unsigned long now = 0, last = 0; // micros() timers
     float deltat = 0;                // loop time in seconds
 
-    float mag_frequency = 200.f;
+    float mag_frequency = 100.f;
     float beta = 0.02f;
     float mincutoff = 0.005f;
     float d_cutoff = 1.0f;
