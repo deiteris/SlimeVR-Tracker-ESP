@@ -3328,8 +3328,8 @@ void MPU9250_Base::initilaizeMagnetometer() {
     I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_ADDR, 0x1E);
     // Set write to Configuration Register A
     I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_REG, 0x00);
-    // Set 75Hz data rate with 4 samples averaging
-    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_DO, 0x58);
+    // Set 75Hz data rate with 8 samples averaging
+    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_DO, 0x78);
     // Enable I2C and write 1 byte
     I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_CTRL, 0x81);
     delay(50);
