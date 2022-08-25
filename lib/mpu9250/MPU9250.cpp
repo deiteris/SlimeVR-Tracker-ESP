@@ -3356,7 +3356,7 @@ void MPU9250_Base::initilaizeMagnetometer() {
 
     // Set up magnetometer as slave 0 for reading
     I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_ADDR, 0x1E|0x80);
-    // Start reading from HXL register
+    // Start reading from HXM register
     I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_REG,  0x03);
     // Read 6 bytes, group LSB and MSB
     I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_CTRL, 0x97);
@@ -3385,7 +3385,7 @@ uint8_t MPU9250_Base::getMagnetometerDeviceID() {
     I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_CTRL, 0x81);
     delay(10);
     I2Cdev::readByte(devAddr, MPU9250_RA_EXT_SENS_DATA_00, buffer);
-    // return reading from HXL register
+    // return reading from HXM register
     I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_REG,  0x03);
     // Read 7 bytes (until ST2 register), group LSB and MSB
     I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_CTRL, 0x97);
