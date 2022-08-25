@@ -49,7 +49,7 @@ void BatteryMonitor::Loop()
 {
     #if BATTERY_MONITOR == BAT_EXTERNAL || BATTERY_MONITOR == BAT_INTERNAL || BATTERY_MONITOR == BAT_MCP3021 || BATTERY_MONITOR == BAT_INTERNAL_MCP3021
         auto now_ms = millis();
-        if (now_ms - last_battery_sample >= batterySampleRate)
+        if (now_ms - last_battery_sample >= BATTERY_SAMPLE_RATE_MILLIS)
         {
             last_battery_sample = now_ms;
             voltage = -1;

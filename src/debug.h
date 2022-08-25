@@ -49,19 +49,19 @@
 #define LED_INTERVAL_STANDBY 10000
 
 // Determines how often we sample and send data
-#define samplingRateInMillis 10
+#define SAMPLING_RATE_MICROS 10000
 
 // Sleeping options
 #define POWERSAVING_MODE POWER_SAVING_LEGACY  // Minimum causes sporadic data pauses
 #if POWERSAVING_MODE >= POWER_SAVING_MINIMUM
-    #define TARGET_LOOPTIME_MICROS (samplingRateInMillis * 1000)
+    #define TARGET_LOOPTIME_MICROS SAMPLING_RATE_MICROS
 #endif
 
 // Setup for the Magnetometer
 #define useFullCalibrationMatrix true
 
 // Battery configuration
-#define batterySampleRate 10000
+#define BATTERY_SAMPLE_RATE_MILLIS 10000
 #define BATTERY_LOW_VOLTAGE_DEEP_SLEEP false
 #define BATTERY_LOW_POWER_VOLTAGE 3.3f // Voltage to raise error
 
