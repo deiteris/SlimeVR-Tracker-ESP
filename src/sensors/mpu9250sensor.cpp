@@ -150,7 +150,7 @@ void MPU9250Sensor::getMPUScaled()
     int i;
 
     int16_t ax, ay, az, gx, gy, gz, mx, my, mz;
-    imu.getMotion9(&ax, &ay, &az, &gx, &gy, &gz, &mx, &my, &mz);
+    imu.getMotion9(&ax, &ay, &az, &gx, &gy, &gz, &mx, &mz, &my);
     Gxyz[0] = ((float)gx - m_Calibration.G_off[0]) * GSCALE;
     Gxyz[1] = ((float)gy - m_Calibration.G_off[1]) * GSCALE;
     Gxyz[2] = ((float)gz - m_Calibration.G_off[2]) * GSCALE;
@@ -233,6 +233,41 @@ void MPU9250Sensor::startCalibration(int calibrationType) {
     m_Calibration.G_off[1] = Gxyz[1];
     m_Calibration.G_off[2] = Gxyz[2];
 
+    #if USE_6_AXES
+    // Blink calibrating led before user should rotate the sensor
+    m_Logger.info("Gently rotate the device while it's gathering accelerometer data");
+    ledManager.pattern(15, 300, 3000/310);
+    float *calibrationDataAcc = (float*)malloc(calibrationSamples * 3 * sizeof(float));
+    for (int i = 0; i < calibrationSamples; i++) {
+        ledManager.on();
+        int16_t ax, ay, az
+        imu.getAcceleration(&ax, &ay, &az);
+        calibrationDataAcc[i * 3 + 0] = ax;
+        calibrationDataAcc[i * 3 + 1] = ay;
+        calibrationDataAcc[i * 3 + 2] = az;
+        Network::sendRawCalibrationData(calibrationDataAcc, CALIBRATION_TYPE_EXTERNAL_ACCEL, 0);
+        ledManager.off();
+        delay(250);
+    }
+    m_Logger.debug("Calculating calibration data...");
+
+    float A_BAinv[4][3];
+    float M_BAinv[4][3];
+    CalculateCalibration(calibrationDataAcc, calibrationSamples, A_BAinv);
+    free(calibrationDataAcc);
+    m_Logger.debug("Finished Calculate Calibration data");
+    m_Logger.debug("Accelerometer calibration matrix:");
+    m_Logger.debug("{");
+    for (uint8_t i = 0; i < 3; i++)
+    {
+        m_Calibration.A_B[i] = A_BAinv[0][i];
+        m_Calibration.A_Ainv[0][i] = A_BAinv[1][i];
+        m_Calibration.A_Ainv[1][i] = A_BAinv[2][i];
+        m_Calibration.A_Ainv[2][i] = A_BAinv[3][i];
+        m_Logger.debug("  %f, %f, %f, %f", A_BAinv[0][i], A_BAinv[1][i], A_BAinv[2][i], A_BAinv[3][i]);
+    }
+    m_Logger.debug("}");
+    #else
     // Blink calibrating led before user should rotate the sensor
     m_Logger.info("Gently rotate the device while it's gathering accelerometer and magnetometer data");
     ledManager.pattern(15, 300, 3000/310);
@@ -240,11 +275,12 @@ void MPU9250Sensor::startCalibration(int calibrationType) {
     float *calibrationDataMag = (float*)malloc(calibrationSamples * 3 * sizeof(float));
     for (int i = 0; i < calibrationSamples; i++) {
         ledManager.on();
-        int16_t ax,ay,az,gx,gy,gz,mx,my,mz;
-        imu.getMotion9(&ax, &ay, &az, &gx, &gy, &gz, &mx, &my, &mz);
+        int16_t ax,ay,az,mx,my,mz;
+        imu.getAcceleration(&ax, &ay, &az);
         calibrationDataAcc[i * 3 + 0] = ax;
         calibrationDataAcc[i * 3 + 1] = ay;
         calibrationDataAcc[i * 3 + 2] = az;
+        imu.getMagnetometer(&mx, &mz, &my);
         calibrationDataMag[i * 3 + 0] = my;
         calibrationDataMag[i * 3 + 1] = mx;
         calibrationDataMag[i * 3 + 2] = -mz;
@@ -283,6 +319,7 @@ void MPU9250Sensor::startCalibration(int calibrationType) {
         m_Logger.debug("  %f, %f, %f, %f", M_BAinv[0][i], M_BAinv[1][i], M_BAinv[2][i], M_BAinv[3][i]);
     }
     m_Logger.debug("}");
+    #endif
 
     m_Logger.debug("Saving the calibration data");
 
