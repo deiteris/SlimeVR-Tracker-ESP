@@ -3334,11 +3334,21 @@ void MPU9250_Base::initilaizeMagnetometer() {
     I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_CTRL, 0x81);
     delay(50);
 
-    // Set the I2C slave address of QMC5883: and set for write.
+    // Set the I2C slave address of QMC5883L and set for write.
+    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_ADDR, 0x0D);
+    // I2C slave 0 register address from where to begin data transfer
+    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_REG, 0x0B);
+    // Set SET/RESET period to 0x01
+    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_DO, 0x01);
+    // Enable I2C and write 1 byte
+    I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_CTRL, 0x81);
+    delay(50);
+
+    // Set the I2C slave address of QMC5883L and set for write.
     I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_ADDR, 0x0D);
     // I2C slave 0 register address from where to begin data transfer
     I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_REG, 0x09);
-    // Start measurements in continuous mode 100hz at 8G scale
+    // Start measurements in continuous mode 100hz at 8G scale with OSR = 512
     I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_DO, 0x19);
     // Enable I2C and write 1 byte
     I2Cdev::writeByte(devAddr, MPU9250_RA_I2C_SLV0_CTRL, 0x81);
