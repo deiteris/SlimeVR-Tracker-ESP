@@ -24,8 +24,15 @@
 #ifndef SENSORS_MPU9250SENSOR_H
 #define SENSORS_MPU9250SENSOR_H
 
+#include "network/network.h"
+#include "globals.h"
+#include "calibration.h"
+#include "magneto1.4.h"
+#include "GlobalVars.h"
 #include "sensor.h"
 #include "logging/Logger.h"
+
+#include "vqf.h"
 
 #include <1efilter.cc>
 #include <MPU9250_6Axis_MotionApps_V6_12.h>
@@ -58,6 +65,7 @@ private:
     // Loop timing globals
     unsigned long now = 0, last = 0; // micros() timers
     float deltat = 0;                // loop time in seconds
+    VQF vqf{1.0f / 100};
 
     float mag_frequency = 100.f;
     float beta = 0.02f;
