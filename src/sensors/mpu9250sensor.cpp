@@ -149,6 +149,19 @@ void MPU9250Sensor::getMPUScaled()
     float temp[3];
     int i;
 
+    #if USE_6_AXIS
+    int16_t ax, ay, az, gx, gy, gz;
+    imu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+
+    Gxyz[0] = ((float)gx - m_Calibration.G_off[0]) * GSCALE;
+    Gxyz[1] = ((float)gy - m_Calibration.G_off[1]) * GSCALE;
+    Gxyz[2] = ((float)gz - m_Calibration.G_off[2]) * GSCALE;
+
+    Axyz[0] = (float)ax;
+    Axyz[1] = (float)ay;
+    Axyz[2] = (float)az;
+
+    #else
     int16_t ax, ay, az, gx, gy, gz, mx, my, mz;
     imu.getMotion9(&ax, &ay, &az, &gx, &gy, &gz, &mx, &my, &mz);
     Gxyz[0] = ((float)gx - m_Calibration.G_off[0]) * GSCALE;
@@ -194,10 +207,11 @@ void MPU9250Sensor::getMPUScaled()
             Mxyz[i] = (Mxyz[i] - m_Calibration.M_B[i]);
     #endif
     
-    uint32_t t = micros();
-    Mxyz[0] = f_mag_y.filter(Mxyz[0], t);
-    Mxyz[1] = f_mag_x.filter(Mxyz[1], t);
-    Mxyz[2] = f_mag_z.filter(Mxyz[2], t);
+    // uint32_t t = micros();
+    // Mxyz[0] = f_mag_y.filter(Mxyz[0], t);
+    // Mxyz[1] = f_mag_x.filter(Mxyz[1], t);
+    // Mxyz[2] = f_mag_z.filter(Mxyz[2], t);
+    #endif
 }
 
 void MPU9250Sensor::startCalibration(int calibrationType) {
