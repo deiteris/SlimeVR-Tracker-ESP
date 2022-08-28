@@ -149,21 +149,9 @@ void MPU9250Sensor::getMPUScaled()
     float temp[3];
     int i;
 
-    #if USE_6_AXIS
     int16_t ax, ay, az, gx, gy, gz;
     imu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
 
-    Gxyz[0] = ((float)gx - m_Calibration.G_off[0]) * GSCALE;
-    Gxyz[1] = ((float)gy - m_Calibration.G_off[1]) * GSCALE;
-    Gxyz[2] = ((float)gz - m_Calibration.G_off[2]) * GSCALE;
-
-    Axyz[0] = (float)ax;
-    Axyz[1] = (float)ay;
-    Axyz[2] = (float)az;
-
-    #else
-    int16_t ax, ay, az, gx, gy, gz, mx, my, mz;
-    imu.getMotion9(&ax, &ay, &az, &gx, &gy, &gz, &mx, &mz, &my);
     Gxyz[0] = ((float)gx - m_Calibration.G_off[0]) * GSCALE;
     Gxyz[1] = ((float)gy - m_Calibration.G_off[1]) * GSCALE;
     Gxyz[2] = ((float)gz - m_Calibration.G_off[2]) * GSCALE;
@@ -184,6 +172,10 @@ void MPU9250Sensor::getMPUScaled()
             Axyz[i] = (Axyz[i] - m-Calibration.A_B[i]);
     #endif
 
+    
+    #if !USE_6_AXIS
+    int16_t mx, my, mz;
+    imu.getMagnetometer(&mx, &mz, &my);
     // Orientations of axes are set in accordance with the datasheet
     // See Section 9.1 Orientation of Axes
     // https://invensense.tdk.com/wp-content/uploads/2015/02/PS-MPU-9250A-01-v1.1.pdf
