@@ -175,7 +175,7 @@ void MPU9250Sensor::getMPUScaled()
     
     #if !USE_6_AXIS
     int16_t mx, my, mz;
-    imu.getMagnetometer(&mx, &mz, &my)
+    imu.getMagnetometer(&mx, &mz, &my);
     // Orientations of axes are set in accordance with the datasheet
     // See Section 9.1 Orientation of Axes
     // https://invensense.tdk.com/wp-content/uploads/2015/02/PS-MPU-9250A-01-v1.1.pdf
